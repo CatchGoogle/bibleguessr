@@ -5,7 +5,7 @@ import { BOOKS, chapterCount, MAX_VERSE } from '../game/books.ts'
 import { distanceLabel, formatPoints, formatReference } from '../game/scoring.ts'
 import { TEAM_COLORS, formatClock, guessesOpen, remainingMs, teamLabel, timerState } from '../game/types.ts'
 import type { PublicGame } from '../game/types.ts'
-import { joinTeam, leaveTeam, reportAway, submitGuess, teamHeartbeat } from '../lib/api.ts'
+import { joinTeam, reportAway, submitGuess, teamHeartbeat } from '../lib/api.ts'
 import { clearTeam, readTeam, writeTeam } from '../lib/storage.ts'
 import type { StoredTeam } from '../lib/storage.ts'
 import { supabaseConfigured } from '../lib/supabase.ts'
@@ -79,17 +79,7 @@ export function Play() {
         />
       )}
       {game && team && (
-        <GuessScreen
-          game={game}
-          team={team}
-          now={now}
-          onError={setFormError}
-          onLeave={() => {
-            void leaveTeam(team.id).catch(() => undefined)
-            clearTeam()
-            setTeam(null)
-          }}
-        />
+        <GuessScreen game={game} team={team} now={now} onError={setFormError} />
       )}
     </main>
   )
@@ -182,13 +172,11 @@ function GuessScreen({
   team,
   now,
   onError,
-  onLeave,
 }: {
   game: PublicGame
   team: StoredTeam
   now: number
   onError: (message: string | null) => void
-  onLeave: () => void
 }) {
   const [lockedLocally, setLockedLocally] = useState(false)
   const roundRef = useRef(game.currentRound)
@@ -274,9 +262,6 @@ function GuessScreen({
           onError={onError}
         />
       )}
-      <button className="text-link" type="button" onClick={onLeave}>
-        Leave team
-      </button>
     </section>
   )
 }
