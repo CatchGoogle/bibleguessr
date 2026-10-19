@@ -302,7 +302,7 @@ function useRevealStage(active: boolean, resetKey: string, celebrate: boolean): 
     const ids = [
       window.setTimeout(() => setStage(1), 1900),
       window.setTimeout(() => setStage(2), 4600),
-      window.setTimeout(() => setStage(3), celebrate ? 18_400 : 14_600),
+      window.setTimeout(() => setStage(3), celebrate ? 15_400 : 11_600),
     ]
     return () => ids.forEach((id) => window.clearTimeout(id))
   }, [active, resetKey, celebrate])
