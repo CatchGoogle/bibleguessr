@@ -1,10 +1,11 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { ActivityLog } from '../components/ActivityLog.tsx'
 import { ConnectionBadge } from '../components/ConnectionBadge.tsx'
 import { ConfirmDialog, Modal } from '../components/Modal.tsx'
 import { downloadScoresCsv, ScoreMatrix } from '../components/ScoreMatrix.tsx'
 import { Wordmark } from '../components/Wordmark.tsx'
 import { BOOKS, chapterCount, MAX_VERSE } from '../game/books.ts'
+import { cleanPassage, looksLikeNiv, parseNivPaste } from '../game/niv.ts'
 import { integritySignals, worstSeverity } from '../game/integrity.ts'
 import type { Severity, Signal } from '../game/integrity.ts'
 import { formatReference } from '../game/scoring.ts'
@@ -49,6 +50,9 @@ export function Host() {
   const [dialog, setDialog] = useState<Dialog | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [dismissed, setDismissed] = useState<Set<string>>(() => new Set())
+  const [nivPaste, setNivPaste] = useState('')
+  const [pasteNote, setPasteNote] = useState<string | null>(null)
+  const editorRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
     if (state && !durationDirty) setSeconds(Math.round(state.timerDurationMs / 1000))
@@ -109,12 +113,35 @@ export function Host() {
     const verse = state?.verses.find((item) => item.roundNumber === round)
     if (!verse) return
     setEditingRound(round)
+    setPasteNote(null)
+    setNivPaste('')
     setDraft({
       book: verse.book,
       chapter: String(verse.chapter),
       verse: String(verse.verse),
       passage: verse.passage,
     })
+    editorRef.current?.scrollIntoView({ block: 'nearest' })
+  }
+
+  function applyNiv(raw: string) {
+    const parsed = parseNivPaste(raw)
+    if (!parsed.passage && !parsed.book) {
+      setPasteNote('No verse text found in that paste.')
+      return
+    }
+    setDraft((current) => ({
+      book: parsed.book ?? current.book,
+      chapter: parsed.chapter != null ? String(parsed.chapter) : current.chapter,
+      verse: parsed.verse != null ? String(parsed.verse) : current.verse,
+      passage: parsed.passage || current.passage,
+    }))
+    setNivPaste('')
+    setPasteNote(
+      parsed.book
+        ? `Filled ${parsed.book} ${parsed.chapter}:${parsed.verse}. Verse numbers and footnotes were removed.`
+        : 'Cleaned the passage. Verse numbers and footnotes were removed.',
+    )
   }
 
   async function saveVerse(event: FormEvent) {
@@ -123,7 +150,7 @@ export function Host() {
       book: draft.book,
       chapter: Number(draft.chapter),
       verse: Number(draft.verse),
-      passage: draft.passage,
+      passage: cleanPassage(draft.passage),
     }
     await run(() =>
       editingRound ? hostApi.updateVerse(editingRound, payload) : hostApi.addVerse(payload),
@@ -255,8 +282,8 @@ export function Host() {
       {notice && <p className="toast floating">{notice}</p>}
 
       {state && ui && (
-        <>
-          <section className="panel control-bar">
+        <div className="host-board">
+          <section className="panel control-bar col-left">
             <div className="control-head">
               <div>
                 <p className="eyebrow">
@@ -404,9 +431,118 @@ export function Host() {
             </details>
           </section>
 
-          <div className="host-layout">
-            <div className="host-col">
-              <section className="panel">
+          <section className="panel verse-editor col-right" ref={editorRef}>
+            <div className="section-head">
+              <h2>{editingRound ? `Editing round ${editingRound}` : 'Add a round'}</h2>
+              {editingRound && (
+                <button
+                  type="button"
+                  className="btn tiny"
+                  onClick={() => {
+                    setEditingRound(null)
+                    setDraft(emptyDraft)
+                    setPasteNote(null)
+                    setNivPaste('')
+                  }}
+                >
+                  Add a new round instead
+                </button>
+              )}
+            </div>
+            <form className="stack" onSubmit={saveVerse}>
+              <label>
+                Paste from NIV
+                <textarea
+                  value={nivPaste}
+                  rows={4}
+                  placeholder={'1 Peter 2:9 NIV\n9 But you are a chosen people… [a]'}
+                  onChange={(event) => setNivPaste(event.target.value)}
+                  onPaste={(event) => {
+                    const text = event.clipboardData.getData('text')
+                    if (!text.trim()) return
+                    event.preventDefault()
+                    setNivPaste(text)
+                    applyNiv(text)
+                  }}
+                />
+              </label>
+              <div className="button-row">
+                <button className="btn" type="button" disabled={!nivPaste.trim()} onClick={() => applyNiv(nivPaste)}>
+                  Clean and fill
+                </button>
+                <span className="quiet">Verse numbers and [a] footnotes are removed.</span>
+              </div>
+              {pasteNote && <p className="notice">{pasteNote}</p>}
+              <div className="editor-fields">
+                <label>
+                  Book
+                  <select
+                    value={draft.book}
+                    onChange={(event) => {
+                      const book = event.target.value
+                      const max = chapterCount(book)
+                      setDraft((currentDraft) => ({
+                        ...currentDraft,
+                        book,
+                        chapter: String(Math.min(Number(currentDraft.chapter) || 1, max)),
+                      }))
+                    }}
+                  >
+                    {BOOKS.map((book) => (
+                      <option key={book.name} value={book.name}>
+                        {book.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Chapter
+                  <input
+                    type="number"
+                    min={1}
+                    max={chapterMax}
+                    value={draft.chapter}
+                    onChange={(event) => setDraft({ ...draft, chapter: event.target.value })}
+                    required
+                  />
+                </label>
+                <label>
+                  Verse
+                  <input
+                    type="number"
+                    min={1}
+                    max={MAX_VERSE}
+                    value={draft.verse}
+                    onChange={(event) => setDraft({ ...draft, verse: event.target.value })}
+                    required
+                  />
+                </label>
+              </div>
+              <label>
+                Passage players will see
+                <textarea
+                  value={draft.passage}
+                  onChange={(event) => setDraft({ ...draft, passage: event.target.value })}
+                  onPaste={(event) => {
+                    const text = event.clipboardData.getData('text')
+                    if (!looksLikeNiv(text)) return
+                    event.preventDefault()
+                    applyNiv(text)
+                  }}
+                  rows={6}
+                  required
+                />
+              </label>
+              <div className="button-row">
+                <button className="btn primary" type="submit" disabled={busy}>
+                  {editingRound ? 'Save round' : 'Add round'}
+                </button>
+              </div>
+            </form>
+          </section>
+
+          <div className="host-col">
+              <section className="panel col-left">
                 <h2>This passage</h2>
                 {currentVerse ? (
                   <>
@@ -420,13 +556,22 @@ export function Host() {
                 )}
               </section>
 
-              <section className="panel">
+              <section className="panel col-left">
                 <h2>Rounds</h2>
                 <ol className="round-list">
                   {state.verses.map((verse) => (
-                    <li key={verse.id} className={verse.roundNumber === state.currentRound ? 'current' : ''}>
+                    <li
+                      key={verse.id}
+                      className={[
+                        verse.roundNumber === state.currentRound ? 'current' : '',
+                        editingRound === verse.roundNumber ? 'editing' : '',
+                      ]
+                        .filter(Boolean)
+                        .join(' ')}
+                    >
                       <button type="button" className="round-select" onClick={() => loadVerse(verse.roundNumber)}>
                         <strong>{verse.roundNumber}.</strong> {formatReference(verse.book, verse.chapter, verse.verse)}
+                        {verse.roundNumber === state.currentRound && <em> · live</em>}
                         {editingRound === verse.roundNumber && <em> · editing</em>}
                       </button>
                       <span className="icon-buttons">
@@ -458,89 +603,11 @@ export function Host() {
                     </li>
                   ))}
                 </ol>
-                {state.verses.length === 0 && <p>Add the first passage.</p>}
-
-                <h3 className="editor-title">{editingRound ? `Editing round ${editingRound}` : 'Add a round'}</h3>
-                {editingRound && (
-                  <p className="notice">
-                    You are editing round {editingRound}.{' '}
-                    <button
-                      type="button"
-                      className="linkish"
-                      onClick={() => {
-                        setEditingRound(null)
-                        setDraft(emptyDraft)
-                      }}
-                    >
-                      Cancel and add a new round instead
-                    </button>
-                  </p>
-                )}
-                <form className="stack" onSubmit={saveVerse}>
-                  <label>
-                    Book
-                    <select
-                      value={draft.book}
-                      onChange={(event) => {
-                        const book = event.target.value
-                        const max = chapterCount(book)
-                        setDraft((currentDraft) => ({
-                          ...currentDraft,
-                          book,
-                          chapter: String(Math.min(Number(currentDraft.chapter) || 1, max)),
-                        }))
-                      }}
-                    >
-                      {BOOKS.map((book) => (
-                        <option key={book.name} value={book.name}>
-                          {book.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <div className="split">
-                    <label>
-                      Chapter
-                      <input
-                        type="number"
-                        min={1}
-                        max={chapterMax}
-                        value={draft.chapter}
-                        onChange={(event) => setDraft({ ...draft, chapter: event.target.value })}
-                        required
-                      />
-                    </label>
-                    <label>
-                      Verse
-                      <input
-                        type="number"
-                        min={1}
-                        max={MAX_VERSE}
-                        value={draft.verse}
-                        onChange={(event) => setDraft({ ...draft, verse: event.target.value })}
-                        required
-                      />
-                    </label>
-                  </div>
-                  <label>
-                    Passage
-                    <textarea
-                      value={draft.passage}
-                      onChange={(event) => setDraft({ ...draft, passage: event.target.value })}
-                      rows={5}
-                      required
-                    />
-                  </label>
-                  <div className="button-row">
-                    <button className="btn primary" type="submit" disabled={busy}>
-                      {editingRound ? 'Save round' : 'Add round'}
-                    </button>
-                  </div>
-                </form>
+                {state.verses.length === 0 && <p>Add the first passage with the form above.</p>}
+                <p className="quiet">Click a round to edit it. The green outline is the round currently on screen.</p>
               </section>
-            </div>
 
-            <div className="host-col">
+              <div className="col-right">
               <IntegrityPanel
                 state={state}
                 signals={signals}
@@ -548,8 +615,9 @@ export function Host() {
                 onDismiss={(id) => setDismissed((current) => new Set(current).add(id))}
                 onDismissAll={() => setDismissed((current) => new Set([...current, ...signals.map((item) => item.id)]))}
               />
+              </div>
 
-              <section className="panel">
+              <section className="panel col-right">
                 <h2>Teams</h2>
                 {state.teams.length === 0 && <p>Teams appear here after they join.</p>}
                 <ul className="team-cards">
@@ -570,7 +638,7 @@ export function Host() {
                 </ul>
               </section>
 
-              <section className="panel">
+              <section className="panel col-right">
                 <div className="section-head">
                   <h2>Scores</h2>
                   <div className="button-row">
@@ -585,15 +653,14 @@ export function Host() {
                 <ScoreMatrix state={state} flagged={flaggedCells} onOpen={(guessId) => setDialog({ kind: 'guess', guessId })} />
               </section>
 
-              <section className="panel">
+              <section className="panel col-right">
                 <details open>
                   <summary className="log-summary">Activity</summary>
                   <ActivityLog events={state.events} />
                 </details>
               </section>
             </div>
-          </div>
-        </>
+        </div>
       )}
 
       {state && dialog?.kind === 'stop' && (
