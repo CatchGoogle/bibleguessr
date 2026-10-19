@@ -1,4 +1,4 @@
-import { copyFileSync, writeFileSync } from 'node:fs'
+import { copyFileSync, mkdirSync, writeFileSync } from 'node:fs'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vitest/config'
 
@@ -9,6 +9,10 @@ function pagesFallback() {
     apply: 'build' as const,
     closeBundle() {
       copyFileSync('dist/index.html', 'dist/404.html')
+      for (const route of ['play', 'view', 'view/preview', 'av6']) {
+        mkdirSync(`dist/${route}`, { recursive: true })
+        copyFileSync('dist/index.html', `dist/${route}/index.html`)
+      }
       writeFileSync('dist/.nojekyll', '')
     },
   }
