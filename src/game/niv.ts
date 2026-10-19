@@ -138,20 +138,98 @@ function isBoilerplate(line: string): boolean {
   return /^(new international version|holy bible|niv)\b/i.test(line) || /biblica|copyright|©|all rights reserved|read full chapter/i.test(line)
 }
 
-function parseReference(line: string): { book: string; chapter: number; verse: number; matched: string } | null {
-  const match = line.match(/^(.+?)\s+(\d{1,3})\s*:\s*(\d{1,3})(?:\s*[-–—]\s*\d{1,3})?(?:\s*\(?\s*niv\s*\)?)?/i)
+export type NivAddress = {
+  book: string
+  chapter: number
+  verse: number
+  endVerse: number
+}
+
+const NIV_SOURCE = 'https://cdn.jsdelivr.net/gh/aruljohn/Bible-niv@master'
+const NIV_FILE_NAMES: Record<string, string> = {
+  Psalm: 'Psalms',
+  'Song of Solomon': 'Song Of Solomon',
+}
+const bookCache = new Map<string, Promise<Map<number, Map<number, string>>>>()
+
+export function parseAddress(input: string): NivAddress | null {
+  const match = input
+    .trim()
+    .match(/^(.+?)\s+(\d{1,3})\s*[:.]\s*(\d{1,3})(?:\s*[-–—]\s*(\d{1,3}))?(?:\s*\(?\s*niv\s*\)?)?$/i)
   if (!match) return null
   const book = resolveBook(match[1])
   if (!book) return null
   const chapter = Number(match[2])
   const verse = Number(match[3])
-  if (chapter < 1 || chapter > chapterCount(book) || verse < 1 || verse > MAX_VERSE) return null
-  return { book, chapter, verse, matched: match[0] }
+  const endVerse = match[4] ? Number(match[4]) : verse
+  if (chapter < 1 || chapter > chapterCount(book)) return null
+  if (verse < 1 || verse > MAX_VERSE || endVerse < verse || endVerse > MAX_VERSE) return null
+  return { book, chapter, verse, endVerse }
+}
+
+function parseReference(line: string): (NivAddress & { matched: string }) | null {
+  const match = line.match(/^(.+?)\s+(\d{1,3})\s*:\s*(\d{1,3})(?:\s*[-–—]\s*(\d{1,3}))?(?:\s*\(?\s*niv\s*\)?)?/i)
+  if (!match) return null
+  const address = parseAddress(match[0])
+  if (!address) return null
+  return { ...address, matched: match[0] }
+}
+
+type RawBook = {
+  chapters?: Array<{
+    chapter?: string | number
+    verses?: Array<{ verse?: string | number; text?: string }>
+  }>
+}
+
+function loadNivBook(book: string): Promise<Map<number, Map<number, string>>> {
+  const hit = bookCache.get(book)
+  if (hit) return hit
+  const file = NIV_FILE_NAMES[book] ?? book
+  const pending = fetch(`${NIV_SOURCE}/${encodeURIComponent(file)}.json`)
+    .then(async (response) => {
+      if (!response.ok) throw new Error('Could not reach the NIV text.')
+      const data = (await response.json()) as RawBook
+      const chapters = new Map<number, Map<number, string>>()
+      for (const ch of data.chapters ?? []) {
+        const verses = new Map<number, string>()
+        for (const item of ch.verses ?? []) {
+          if (item.text) verses.set(Number(item.verse), item.text)
+        }
+        chapters.set(Number(ch.chapter), verses)
+      }
+      return chapters
+    })
+    .catch((err) => {
+      bookCache.delete(book)
+      throw err
+    })
+  bookCache.set(book, pending)
+  return pending
+}
+
+export async function lookupNiv(query: string): Promise<NivAddress & { passage: string }> {
+  const address = parseAddress(query)
+  if (!address) throw new Error('Enter a reference like Romans 8:28 or 1 Peter 2:9-10.')
+  const chapters = await loadNivBook(address.book)
+  const verses = chapters.get(address.chapter)
+  if (!verses) throw new Error(`${address.book} has no chapter ${address.chapter}.`)
+  const parts: string[] = []
+  for (let v = address.verse; v <= address.endVerse; v += 1) {
+    const text = verses.get(v)
+    if (!text) {
+      throw new Error(
+        `${address.book} ${address.chapter}:${v} was not found (chapter ${address.chapter} has ${verses.size} verses).`,
+      )
+    }
+    parts.push(text)
+  }
+  return { ...address, passage: cleanPassage(parts.join(' ')) }
 }
 
 /** Drop NIV verse numbers and footnote markers like [a] or [1]. Keeps numbers that are part of the sentence. */
 export function cleanPassage(text: string): string {
-  let passage = text.replace(/\u00a0/g, ' ')
+  let passage = text.replace(/\u00a0/g, ' ').replace(/`/g, '’')
   passage = passage.replace(/\s*\[[a-zA-Z0-9]{1,3}\]/g, '')
   passage = passage.replace(/(^|\n)\s*\d{1,3}(?=\s+)/g, '$1')
   passage = passage.replace(/([.!?…"”'’])\s+\d{1,3}(?=\s+[A-Z“"‘'])/g, '$1')

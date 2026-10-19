@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cleanPassage, parseNivPaste } from './niv.ts'
+import { cleanPassage, parseAddress, parseNivPaste } from './niv.ts'
 
 describe('parseNivPaste', () => {
   it('reads a Bible Gateway style paste and drops verse numbers and footnotes', () => {
@@ -35,7 +35,15 @@ a. 1 Peter 2:9 Or a chosen generation`)
 })
 
 describe('cleanPassage', () => {
-  it('removes bracket footnotes without touching ordinary brackets of one letter only when marked', () => {
-    expect(cleanPassage('called you [x] out of darkness')).toBe('called you out of darkness')
+  it('removes bracket footnotes and normalises backtick apostrophes', () => {
+    expect(cleanPassage('God`s elect [x] out of darkness')).toBe('God’s elect out of darkness')
+  })
+})
+
+describe('parseAddress', () => {
+  it('reads single verses, ranges, and abbreviations', () => {
+    expect(parseAddress('romans 8:28')).toEqual({ book: 'Romans', chapter: 8, verse: 28, endVerse: 28 })
+    expect(parseAddress('1 pet 2:9-10')).toEqual({ book: '1 Peter', chapter: 2, verse: 9, endVerse: 10 })
+    expect(parseAddress('ps 23.1')).toEqual({ book: 'Psalm', chapter: 23, verse: 1, endVerse: 1 })
   })
 })

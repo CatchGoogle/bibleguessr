@@ -388,24 +388,21 @@ textarea { resize: vertical; }
 
 .page.host-page { width: min(1560px, calc(100% - 32px)); }
 
-.control-bar { display: grid; gap: 16px; }
+.control-bar { display: grid; gap: 14px; }
 
 .host-board { display: grid; gap: 14px; align-items: start; }
 .host-board .panel { margin: 0; }
-.host-col { display: grid; gap: 14px; }
+.host-col { display: grid; gap: 14px; min-width: 0; }
 
-@media (min-width: 1100px) {
+@media (min-width: 980px) {
   .host-board { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-  .host-col { display: contents; }
-  .col-left { grid-column: 1; }
-  .col-right { grid-column: 2; }
-  .control-bar, .verse-editor {
-    position: sticky;
-    top: 8px;
-    z-index: 20;
-    background: rgba(255, 250, 240, 0.97);
-    backdrop-filter: blur(8px);
-  }
+}
+
+.lookup-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
 }
 
 .editor-fields {
