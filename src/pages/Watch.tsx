@@ -164,6 +164,14 @@ function RevealView({
   const showStandings = final ? game.snapshot.standingsRevealed && stage >= 2 : stage >= 3
   const showCards = !showStandings && (stage === 2 || (final && stage >= 3))
 
+  if (final && showStandings) {
+    return (
+      <div className="stage-layout finals">
+        <Standings results={reveal.results} final />
+      </div>
+    )
+  }
+
   return (
     <div className="stage-layout reveal">
       <section className="map-pane">

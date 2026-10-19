@@ -45,7 +45,6 @@ export function Timeline({
   return (
     <div className="timeline">
       <div className="plot">
-        <span className="axis axis-top">Last chapter</span>
         <span className="axis axis-bottom">Chapter 1</span>
         <div className="testament-split" style={{ left: `${testamentDividerPercent()}%` }}>
           <span className="split-ot">Old Testament</span>

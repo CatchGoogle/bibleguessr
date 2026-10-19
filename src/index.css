@@ -690,7 +690,7 @@ textarea { resize: vertical; }
   position: relative;
   height: 100%;
   display: grid;
-  grid-template-columns: 420px minmax(0, 1fr) 560px;
+  grid-template-columns: 520px minmax(0, 1fr) 560px;
   grid-template-rows: minmax(0, 1fr) 400px;
   gap: 24px 32px;
   padding: 36px 48px 28px;
@@ -708,7 +708,7 @@ textarea { resize: vertical; }
 .map-band { grid-column: 1 / -1; min-height: 0; display: flex; flex-direction: column; }
 .map-band .timeline { flex: 1; width: 100%; }
 
-.watch-stage .logo { width: min(100%, 390px); height: auto; }
+.watch-stage .logo { width: min(100%, 500px); height: auto; }
 
 .passage-pane { display: grid; place-items: center; }
 
@@ -881,7 +881,7 @@ textarea { resize: vertical; }
   font-family: Fraunces, Georgia, serif;
 }
 
-.stage-kicker .logo { width: 300px; }
+.stage-kicker .logo { width: 480px; }
 
 .map-count {
   margin: 0 0 8px;
@@ -911,7 +911,6 @@ textarea { resize: vertical; }
   color: rgba(217, 199, 170, 0.75);
 }
 
-.axis-top { top: 8px; }
 .axis-bottom { bottom: 8px; }
 
 .testament-split { position: absolute; top: 0; bottom: 0; width: 2px; background: rgba(215, 181, 106, 0.8); }
@@ -1135,6 +1134,44 @@ textarea { resize: vertical; }
 .place-1 .podium-block { height: 190px; }
 .place-2 .podium-block { height: 130px; }
 .place-3 .podium-block { height: 90px; }
+
+.stage-layout.finals {
+  display: flex;
+  flex-direction: column;
+  padding: 48px 72px 36px;
+}
+
+.stage-layout.finals .standings { flex: 1; }
+.stage-layout.finals .answer-kicker { font-size: 52px; text-align: center; margin-bottom: 8px; }
+
+.stage-layout.finals .podium {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+  width: 100%;
+  gap: 48px;
+  margin: 0;
+  align-items: flex-end;
+}
+
+.stage-layout.finals .podium-slot { width: min(30%, 820px); gap: 10px; }
+.stage-layout.finals .podium-slot strong { font-size: 56px; }
+.stage-layout.finals .podium-score { font-size: 96px; }
+.stage-layout.finals .podium-block { font-size: 128px; border-radius: 28px 28px 0 0; }
+.stage-layout.finals .place-1 .podium-block { height: 420px; }
+.stage-layout.finals .place-2 .podium-block { height: 300px; }
+.stage-layout.finals .place-3 .podium-block { height: 210px; }
+
+.stage-layout.finals .standing-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(900px, 1fr));
+  gap: 14px 32px;
+  margin-top: 28px;
+}
+
+.stage-layout.finals .standing-list.dense {
+  grid-template-columns: repeat(auto-fit, minmax(640px, 1fr));
+}
 
 .watch-message { position: absolute; inset: 0; display: grid; place-items: center; font-size: 48px; }
 
