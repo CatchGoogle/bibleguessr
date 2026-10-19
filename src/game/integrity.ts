@@ -1,4 +1,4 @@
-import { formatReference } from './scoring.ts'
+import { formatReference, isPerfectScore } from './scoring.ts'
 import type { GuessRow, HostState } from './types.ts'
 
 export type Severity = 'low' | 'medium' | 'high'
@@ -81,7 +81,7 @@ export function integritySignals(state: HostState): Signal[] {
 
   const exactByTeam = new Map<string, number>()
   for (const guess of state.guesses) {
-    if (guess.bookScore === 50 && guess.chapterScore === 30 && guess.verseScore === 20) exactByTeam.set(guess.teamId, (exactByTeam.get(guess.teamId) ?? 0) + 1)
+    if (isPerfectScore(guess.bookScore, guess.chapterScore, guess.verseScore)) exactByTeam.set(guess.teamId, (exactByTeam.get(guess.teamId) ?? 0) + 1)
   }
   for (const [teamId, count] of exactByTeam) {
     if (count >= 3) {

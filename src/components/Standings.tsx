@@ -1,22 +1,26 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { standings } from '../game/standings.ts'
+import { formatPoints } from '../game/scoring.ts'
 import { teamLabel } from '../game/types.ts'
 import type { RevealResult } from '../game/types.ts'
 
-export function CountUp({ from, to, ms = 1300 }: { from: number; to: number; ms?: number }) {
+export function CountUp({ from, to, ms = 1300, onComplete }: { from: number; to: number; ms?: number; onComplete?: () => void }) {
   const [value, setValue] = useState(from)
+  const done = useRef(onComplete)
+  done.current = onComplete
   useEffect(() => {
     let frame = 0
     const start = performance.now()
     const tick = (time: number) => {
-      const progress = Math.min(1, (time - start) / ms)
+      const progress = Math.min(1, ms <= 0 ? 1 : (time - start) / ms)
       setValue(Math.round(from + (to - from) * (1 - Math.pow(1 - progress, 3))))
       if (progress < 1) frame = requestAnimationFrame(tick)
+      else done.current?.()
     }
     frame = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(frame)
   }, [from, to, ms])
-  return <>{value}</>
+  return <>{formatPoints(value)}</>
 }
 
 function Change({ change }: { change: number }) {

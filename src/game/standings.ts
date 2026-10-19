@@ -1,3 +1,4 @@
+import { isPerfectScore, SCORE } from './scoring.ts'
 import { BAND_COLORS } from './types.ts'
 import type { RevealResult } from './types.ts'
 
@@ -5,10 +6,10 @@ export type Band = keyof typeof BAND_COLORS
 
 export function bandFor(result: RevealResult): Band | null {
   if (!result.guessBook) return null
-  if (result.bookScore === 50 && result.chapterScore === 30 && result.verseScore === 20) return 'perfect'
-  if (result.bookScore === 50 && result.chapterScore >= 20) return 'excellent'
-  if (result.bookScore >= 40) return 'good'
-  if (result.bookScore >= 10) return 'ok'
+  if (isPerfectScore(result.bookScore, result.chapterScore, result.verseScore)) return 'perfect'
+  if (result.bookScore === SCORE.book.exact && result.chapterScore >= SCORE.chapter.close) return 'excellent'
+  if (result.bookScore >= SCORE.book.close) return 'good'
+  if (result.bookScore >= SCORE.book.far) return 'ok'
   return 'poor'
 }
 

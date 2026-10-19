@@ -7,27 +7,44 @@ export type ScoreParts = {
   baseScore: number
 }
 
+// An exact book, chapter, and verse is 5,000. The bands keep the old proportions.
+export const SCORE = {
+  book: { exact: 2500, close: 2000, near: 1000, far: 500 },
+  chapter: { exact: 1500, close: 1000, near: 500, far: 250 },
+  verse: { exact: 1000, close: 500, near: 250, far: 150 },
+} as const
+
+export const PERFECT_SCORE = SCORE.book.exact + SCORE.chapter.exact + SCORE.verse.exact
+
+export function isPerfectScore(bookScore: number, chapterScore: number, verseScore: number): boolean {
+  return bookScore === SCORE.book.exact && chapterScore === SCORE.chapter.exact && verseScore === SCORE.verse.exact
+}
+
+export function formatPoints(value: number): string {
+  return value.toLocaleString('en-US')
+}
+
 function bookPoints(distance: number, exact: boolean): number {
-  if (exact) return 50
-  if (distance <= 3) return 40
-  if (distance <= 5) return 20
-  if (distance <= 10) return 10
+  if (exact) return SCORE.book.exact
+  if (distance <= 3) return SCORE.book.close
+  if (distance <= 5) return SCORE.book.near
+  if (distance <= 10) return SCORE.book.far
   return 0
 }
 
 function chapterPoints(distance: number): number {
-  if (distance === 0) return 30
-  if (distance <= 3) return 20
-  if (distance <= 5) return 10
-  if (distance <= 10) return 5
+  if (distance === 0) return SCORE.chapter.exact
+  if (distance <= 3) return SCORE.chapter.close
+  if (distance <= 5) return SCORE.chapter.near
+  if (distance <= 10) return SCORE.chapter.far
   return 0
 }
 
 function versePoints(distance: number): number {
-  if (distance === 0) return 20
-  if (distance <= 3) return 10
-  if (distance <= 5) return 5
-  if (distance <= 10) return 3
+  if (distance === 0) return SCORE.verse.exact
+  if (distance <= 3) return SCORE.verse.close
+  if (distance <= 5) return SCORE.verse.near
+  if (distance <= 10) return SCORE.verse.far
   return 0
 }
 

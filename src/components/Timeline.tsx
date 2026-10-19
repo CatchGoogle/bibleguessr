@@ -7,7 +7,12 @@ type Answer = {
   chapter: number
 }
 
-const KEY_BOOKS = new Set(['Genesis', 'Matthew', 'Revelation'])
+// Landmark books only. Sixty-six names cannot be read from across a room.
+const AXIS_BOOKS = ['Genesis', '1 Kings', 'Psalm', 'Daniel', 'Matthew', 'Revelation']
+
+function axisLabel(name: string): string {
+  return name === 'Psalm' ? 'Psalms' : name
+}
 
 // Nudge pins that would land on top of each other so every team color stays visible.
 function spread(pins: MapPin[]) {
@@ -72,16 +77,19 @@ export function Timeline({
           </div>
         )}
       </div>
-      <div className="book-labels">
-        {BOOKS.map((book, index) => (
-          <span
-            key={book.name}
-            className={`${index % 2 ? 'row-b' : 'row-a'}${KEY_BOOKS.has(book.name) ? ' key' : ''}`}
-            style={{ left: `${bookPosition(book.name)}%` }}
-          >
-            {book.label}
-          </span>
-        ))}
+      <div className="book-axis">
+        <div className="book-ticks">
+          {BOOKS.map((book) => (
+            <i key={book.name} style={{ left: `${bookPosition(book.name)}%` }} />
+          ))}
+        </div>
+        <div className="book-labels">
+          {AXIS_BOOKS.map((name) => (
+            <span key={name} style={{ left: `${bookPosition(name)}%` }}>
+              {axisLabel(name)}
+            </span>
+          ))}
+        </div>
       </div>
     </div>
   )

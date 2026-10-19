@@ -1,4 +1,4 @@
-import { formatReference } from '../game/scoring.ts'
+import { formatPoints, formatReference } from '../game/scoring.ts'
 import { teamLabel } from '../game/types.ts'
 import type { GuessRow, HostState } from '../game/types.ts'
 
@@ -64,14 +64,14 @@ export function ScoreMatrix({
                         onClick={() => onOpen(cell.id)}
                         title={`${cell.guessBook} ${cell.guessChapter}:${cell.guessVerse}`}
                       >
-                        {cell.score}
+                        {formatPoints(cell.score)}
                       </button>
                     ) : (
                       <span className="empty">–</span>
                     )}
                   </td>
                 ))}
-                <td className="avg">{average ?? '–'}</td>
+                <td className="avg">{average == null ? '–' : formatPoints(average)}</td>
               </tr>
             )
           })}
@@ -83,7 +83,7 @@ export function ScoreMatrix({
               const total = totals.get(team.id) ?? 0
               return (
                 <td key={team.id} className={total === best && best > 0 ? 'total leader' : 'total'}>
-                  {total}
+                  {formatPoints(total)}
                 </td>
               )
             })}

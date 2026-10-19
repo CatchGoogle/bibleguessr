@@ -8,7 +8,7 @@ import { BOOKS, chapterCount, MAX_VERSE } from '../game/books.ts'
 import { cleanPassage, looksLikeNiv, lookupNiv, parseAddress, parseNivPaste } from '../game/niv.ts'
 import { integritySignals, worstSeverity } from '../game/integrity.ts'
 import type { Severity, Signal } from '../game/integrity.ts'
-import { formatReference } from '../game/scoring.ts'
+import { formatPoints, formatReference } from '../game/scoring.ts'
 import { TEAM_COLORS, formatClock, remainingMs, teamLabel, timerState } from '../game/types.ts'
 import type { HostState, TeamRow, TimerState } from '../game/types.ts'
 import { hostApi } from '../lib/api.ts'
@@ -985,18 +985,18 @@ function GuessDetail({
         <dt>Answer</dt>
         <dd>{verse ? formatReference(verse.book, verse.chapter, verse.verse) : '–'}</dd>
         <dt>Book</dt>
-        <dd>{guess.bookScore}</dd>
+        <dd>{formatPoints(guess.bookScore)}</dd>
         <dt>Chapter</dt>
-        <dd>{guess.chapterScore}</dd>
+        <dd>{formatPoints(guess.chapterScore)}</dd>
         <dt>Verse</dt>
-        <dd>{guess.verseScore}</dd>
+        <dd>{formatPoints(guess.verseScore)}</dd>
         <dt>Speed bonus</dt>
         <dd>
-          {base} × {guess.multiplier.toFixed(2)} (locked in #{guess.submissionOrder})
+          {formatPoints(base)} × {guess.multiplier.toFixed(2)} (locked in #{guess.submissionOrder})
         </dd>
         <dt>Score</dt>
         <dd>
-          <strong>{guess.score}</strong>
+          <strong>{formatPoints(guess.score)}</strong>
         </dd>
       </dl>
       <div className="button-row">

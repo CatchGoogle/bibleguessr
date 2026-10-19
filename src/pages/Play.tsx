@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { ConnectionBadge } from '../components/ConnectionBadge.tsx'
 import { Wordmark } from '../components/Wordmark.tsx'
 import { BOOKS, chapterCount, MAX_VERSE } from '../game/books.ts'
-import { distanceLabel, formatReference } from '../game/scoring.ts'
+import { distanceLabel, formatPoints, formatReference } from '../game/scoring.ts'
 import { TEAM_COLORS, formatClock, guessesOpen, remainingMs, teamLabel, timerState } from '../game/types.ts'
 import type { PublicGame } from '../game/types.ts'
 import { joinTeam, leaveTeam, reportAway, submitGuess, teamHeartbeat } from '../lib/api.ts'
@@ -255,7 +255,7 @@ function GuessScreen({
                 reveal.chapter,
                 reveal.verse,
               )}{' '}
-              · <strong>{mineResult.score} points</strong>
+              · <strong>{formatPoints(mineResult.score)} points</strong>
             </p>
           ) : (
             <p>No guess locked in.</p>

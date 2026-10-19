@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ConnectionBadge } from '../components/ConnectionBadge.tsx'
 import { Standings } from '../components/Standings.tsx'
+import { PerfectScore } from '../components/PerfectScore.tsx'
 import { Timeline } from '../components/Timeline.tsx'
 import { Wordmark } from '../components/Wordmark.tsx'
 import { previewGame } from '../game/preview.ts'
 import type { PreviewPhase } from '../game/preview.ts'
-import { distanceLabel, formatReference } from '../game/scoring.ts'
+import { distanceLabel, formatPoints, formatReference, isPerfectScore } from '../game/scoring.ts'
 import { bandFor } from '../game/standings.ts'
 import { BAND_COLORS, formatClock, remainingMs, teamLabel, timerState } from '../game/types.ts'
 import type { Phase, PublicGame } from '../game/types.ts'
@@ -44,7 +45,8 @@ function Stage({ game }: { game: PublicGame }) {
   const intro = useRoundIntro(game.phase, game.currentRound, effects)
   const shaking = usePinShake(game, effects)
   const reveal = game.phase === 'reveal' ? game.snapshot.reveal : null
-  const stage = useRevealStage(Boolean(reveal), `${game.currentRound}:${reveal?.book}:${reveal?.chapter}`)
+  const celebrate = reveal?.results.some((result) => isPerfectScore(result.bookScore, result.chapterScore, result.verseScore)) ?? false
+  const stage = useRevealStage(Boolean(reveal), `${game.currentRound}:${reveal?.book}:${reveal?.chapter}`, celebrate)
 
   const total = game.snapshot.totalRounds
   const roundLabel = total > 0 ? `Round ${game.currentRound} of ${total}` : `Round ${game.currentRound}`
@@ -157,6 +159,7 @@ function RevealView({
 }) {
   const total = game.snapshot.totalRounds
   const final = total > 0 && game.currentRound >= total
+  const perfects = reveal.results.filter((result) => isPerfectScore(result.bookScore, result.chapterScore, result.verseScore))
   // The host decides when the final standings appear; other rounds show them on a timer.
   const showStandings = final ? game.snapshot.standingsRevealed && stage >= 2 : stage >= 3
   const showCards = !showStandings && (stage === 2 || (final && stage >= 3))
@@ -205,7 +208,7 @@ function RevealView({
               {reveal.results.map((result, index) => {
                 const band = bandFor(result)
                 return (
-                  <li key={result.teamId} style={{ animationDelay: `${index * 0.14}s` }}>
+                  <li key={result.teamId} className={band === 'perfect' ? 'perfect-row' : undefined} style={{ animationDelay: `${index * 0.14}s` }}>
                     <i style={{ background: result.color }} />
                     <div className="rc-main">
                       <strong>{teamLabel(result.teammate1, result.teammate2)}</strong>
@@ -229,7 +232,7 @@ function RevealView({
                         : '–'}
                     </div>
                     <div className="rc-score">
-                      <em>{result.guessBook ? `+${result.score}` : '–'}</em>
+                      <em>{result.guessBook ? `+${formatPoints(result.score)}` : '–'}</em>
                       {result.guessBook && result.multiplier > 1.001 && <small>×{result.multiplier.toFixed(2)} speed</small>}
                     </div>
                   </li>
@@ -241,6 +244,9 @@ function RevealView({
         {showStandings && <Standings results={reveal.results} final={final} />}
         {final && !showStandings && stage >= 2 && <p className="standings-hold">Final standings coming up…</p>}
       </section>
+      {perfects.length > 0 && stage >= 2 && !showStandings && (
+        <PerfectScore key={`${game.currentRound}:${reveal.book}:${reveal.verse}`} teams={perfects} />
+      )}
     </div>
   )
 }
@@ -287,7 +293,7 @@ function usePinShake(game: PublicGame, effects: boolean): boolean {
 }
 
 // Reveal in beats: guesses are in, the answer lands, round results, then standings.
-function useRevealStage(active: boolean, resetKey: string): number {
+function useRevealStage(active: boolean, resetKey: string, celebrate: boolean): number {
   const [stage, setStage] = useState(0)
 
   useEffect(() => {
@@ -296,10 +302,10 @@ function useRevealStage(active: boolean, resetKey: string): number {
     const ids = [
       window.setTimeout(() => setStage(1), 1900),
       window.setTimeout(() => setStage(2), 4600),
-      window.setTimeout(() => setStage(3), 14_600),
+      window.setTimeout(() => setStage(3), celebrate ? 18_400 : 14_600),
     ]
     return () => ids.forEach((id) => window.clearTimeout(id))
-  }, [active, resetKey])
+  }, [active, resetKey, celebrate])
 
   return stage
 }
@@ -327,9 +333,9 @@ function PreviewSwitch({ phase, onChange }: { phase: PreviewPhase; onChange: (ph
 
 function passageFont(text: string | null): number {
   const length = text?.length ?? 0
-  if (length > 420) return 46
-  if (length > 240) return 62
-  return 80
+  if (length > 420) return 58
+  if (length > 240) return 74
+  return 96
 }
 
 function useStageScale() {
