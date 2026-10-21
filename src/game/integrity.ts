@@ -1,5 +1,5 @@
-import { formatReference, isPerfectScore } from './scoring.ts'
-import type { GuessRow, HostState } from './types.ts'
+import { isPerfectScore } from './scoring.ts'
+import type { HostState } from './types.ts'
 
 export type Severity = 'low' | 'medium' | 'high'
 
@@ -23,7 +23,6 @@ function seconds(ms: number): string {
 // Soft hints that something is off. None of these prove anything, so the host decides.
 export function integritySignals(state: HostState): Signal[] {
   const signals: Signal[] = []
-  const guessKey = (guess: GuessRow) => `${guess.guessBook}|${guess.guessChapter}|${guess.guessVerse}`
 
   for (const flag of state.flags) {
     if (flag.awayCount < 1) continue
@@ -36,28 +35,6 @@ export function integritySignals(state: HostState): Signal[] {
       title: 'Left the page',
       detail: `Left the page ${flag.awayCount}× for ${seconds(flag.awayMs)} before locking in`,
     })
-  }
-
-  const byRound = new Map<number, GuessRow[]>()
-  for (const guess of state.guesses) byRound.set(guess.roundNumber, [...(byRound.get(guess.roundNumber) ?? []), guess])
-
-  for (const [round, guesses] of byRound) {
-    const groups = new Map<string, GuessRow[]>()
-    for (const guess of guesses) groups.set(guessKey(guess), [...(groups.get(guessKey(guess)) ?? []), guess])
-    for (const group of groups.values()) {
-      if (group.length < 2) continue
-      for (const guess of group) {
-        signals.push({
-          id: `same:${guess.id}`,
-          teamId: guess.teamId,
-          roundNumber: round,
-          severity: group.length >= 3 ? 'high' : 'medium',
-          title: 'Identical guess',
-          detail: `${group.length} teams guessed ${formatReference(guess.guessBook, guess.guessChapter, guess.guessVerse)} exactly`,
-          guessId: guess.id,
-        })
-      }
-    }
   }
 
   const startedAt = state.roundStartedAt ? new Date(state.roundStartedAt).getTime() : null

@@ -923,8 +923,7 @@ function IntegrityPanel({
       </div>
       {signals.length === 0 ? (
         <p className="quiet">
-          Nothing suspicious. Phones report when a team leaves the page during a round, and identical or
-          instant guesses are flagged here.
+          Nothing suspicious. Phones report when a team leaves the page during a round, and very fast lock-ins are flagged here.
         </p>
       ) : (
         <ul className="signal-list">
