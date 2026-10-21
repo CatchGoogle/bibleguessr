@@ -7,10 +7,6 @@ function context(): AudioContext {
   return audio
 }
 
-export function soundNeedsUnlock(): boolean {
-  return !audio || audio.state !== 'running'
-}
-
 export function unlockSound(): void {
   const ctx = context()
   if (ctx.state === 'suspended') void ctx.resume()

@@ -1210,20 +1210,6 @@ textarea { resize: vertical; }
 .stage-layout.finals .standing-list.race li { font-size: 52px; padding: 18px 28px; }
 .stage-layout.finals .standing-list.race em { font-size: 64px; }
 
-.sound-unlock {
-  position: absolute;
-  z-index: 10;
-  left: 36px;
-  bottom: 28px;
-  border: 0;
-  border-radius: 999px;
-  padding: 16px 32px;
-  background: #d7b56a;
-  color: #1c140c;
-  font-size: 34px;
-  font-weight: 700;
-}
-
 .perfect-overlay {
   position: absolute;
   inset: 0;

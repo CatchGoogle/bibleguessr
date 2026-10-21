@@ -7,7 +7,7 @@ import { Wordmark } from '../components/Wordmark.tsx'
 import { previewGame } from '../game/preview.ts'
 import type { PreviewPhase } from '../game/preview.ts'
 import { distanceLabel, formatReference, isPerfectScore } from '../game/scoring.ts'
-import { playCountdown, playTimeUp, soundNeedsUnlock, unlockSound } from '../game/sounds.ts'
+import { playCountdown, playTimeUp, unlockSound } from '../game/sounds.ts'
 import { bandFor } from '../game/standings.ts'
 import { BAND_COLORS, formatClock, remainingMs, teamLabel, timerState } from '../game/types.ts'
 import type { Phase, PublicGame, TimerState } from '../game/types.ts'
@@ -24,13 +24,13 @@ export function Watch({ preview = false }: { preview?: boolean }) {
   const fixture = useMemo(() => previewGame(previewPhase), [previewPhase])
   const game = preview ? fixture : live.game
   const scale = useStageScale()
+  useAutoSound()
 
   return (
     <div className="watch-root">
       <div className="watch-fit" style={{ width: STAGE_WIDTH * scale, height: STAGE_HEIGHT * scale }}>
         <div className="watch-stage" style={{ transform: `scale(${scale})` }}>
           {preview && <PreviewSwitch phase={previewPhase} onChange={setPreviewPhase} />}
-          <SoundGate />
           {!preview && live.loading && !live.game && <p className="watch-message">Opening the game…</p>}
           {!preview && live.error && !live.game && <p className="watch-message">{live.error}</p>}
           {!preview && live.game && <ConnectionBadge connection={live.connection} dark />}
@@ -376,24 +376,19 @@ function useCountdownChime(remaining: number, phase: Phase, state: TimerState, r
   }, [second, phase, state, round])
 }
 
-function SoundGate() {
-  const [locked, setLocked] = useState(() => soundNeedsUnlock())
-
+function useAutoSound() {
   useEffect(() => {
-    const open = () => {
-      unlockSound()
-      setLocked(false)
-    }
+    unlockSound()
+    const open = () => unlockSound()
     window.addEventListener('pointerdown', open)
-    return () => window.removeEventListener('pointerdown', open)
+    window.addEventListener('keydown', open)
+    document.addEventListener('visibilitychange', open)
+    return () => {
+      window.removeEventListener('pointerdown', open)
+      window.removeEventListener('keydown', open)
+      document.removeEventListener('visibilitychange', open)
+    }
   }, [])
-
-  if (!locked) return null
-  return (
-    <button className="sound-unlock" type="button" onClick={() => { unlockSound(); setLocked(false) }}>
-      Click for sound
-    </button>
-  )
 }
 
 function PreviewSwitch({ phase, onChange }: { phase: PreviewPhase; onChange: (phase: PreviewPhase) => void }) {
