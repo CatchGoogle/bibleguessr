@@ -9,7 +9,7 @@ import { cleanPassage, looksLikeNiv, lookupNiv, parseAddress, parseNivPaste } fr
 import { integritySignals, worstSeverity } from '../game/integrity.ts'
 import type { Severity, Signal } from '../game/integrity.ts'
 import { formatPoints, formatReference } from '../game/scoring.ts'
-import { TEAM_COLORS, formatClock, remainingMs, teamLabel, timerState } from '../game/types.ts'
+import { TEAM_COLORS, TEAM_COLOR_NAMES, formatClock, remainingMs, teamLabel, timerState } from '../game/types.ts'
 import type { HostState, TeamRow, TimerState } from '../game/types.ts'
 import { hostApi } from '../lib/api.ts'
 import { siteUrl } from '../lib/site.ts'
@@ -1048,7 +1048,7 @@ function TeamEditor({
             className={color === swatch ? 'swatch selected' : 'swatch'}
             style={{ background: swatch }}
             onClick={() => setColor(swatch)}
-            aria-label={`Color ${index + 1}`}
+            aria-label={TEAM_COLOR_NAMES[index]}
             aria-pressed={color === swatch}
           />
         ))}

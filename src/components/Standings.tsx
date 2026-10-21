@@ -1,26 +1,80 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { standings } from '../game/standings.ts'
+import type { StandingRow } from '../game/standings.ts'
 import { formatPoints } from '../game/scoring.ts'
+import { startTicker, stopTicker } from '../game/sounds.ts'
 import { teamLabel } from '../game/types.ts'
 import type { RevealResult } from '../game/types.ts'
 
-export function CountUp({ from, to, ms = 1300, onComplete }: { from: number; to: number; ms?: number; onComplete?: () => void }) {
+const RACE_MS = 2600
+
+export function CountUp({
+  from,
+  to,
+  ms = 1300,
+  delay = 0,
+  ticker = false,
+  onComplete,
+}: {
+  from: number
+  to: number
+  ms?: number
+  delay?: number
+  ticker?: boolean
+  onComplete?: () => void
+}) {
   const [value, setValue] = useState(from)
   const done = useRef(onComplete)
   done.current = onComplete
   useEffect(() => {
     let frame = 0
-    const start = performance.now()
-    const tick = (time: number) => {
-      const progress = Math.min(1, ms <= 0 ? 1 : (time - start) / ms)
-      setValue(Math.round(from + (to - from) * (1 - Math.pow(1 - progress, 3))))
-      if (progress < 1) frame = requestAnimationFrame(tick)
-      else done.current?.()
+    let ticking = false
+    const stop = () => {
+      if (!ticking) return
+      ticking = false
+      if (ticker) stopTicker()
     }
-    frame = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(frame)
-  }, [from, to, ms])
+    const begin = () => {
+      if (ticker) {
+        ticking = true
+        startTicker()
+      }
+      const start = performance.now()
+      const tick = (time: number) => {
+        const progress = Math.min(1, ms <= 0 ? 1 : (time - start) / ms)
+        setValue(Math.round(from + (to - from) * (1 - Math.pow(1 - progress, 3))))
+        if (progress < 1) frame = requestAnimationFrame(tick)
+        else {
+          stop()
+          done.current?.()
+        }
+      }
+      frame = requestAnimationFrame(tick)
+    }
+    const wait = window.setTimeout(begin, delay)
+    return () => {
+      window.clearTimeout(wait)
+      cancelAnimationFrame(frame)
+      stop()
+    }
+  }, [from, to, ms, delay, ticker])
   return <>{formatPoints(value)}</>
+}
+
+function shownScore(row: StandingRow, progress: number): number {
+  return Math.round(row.previousTotal + (row.result.totalScore - row.previousTotal) * progress)
+}
+
+function previousRank(row: StandingRow): number {
+  return row.rank + row.change
+}
+
+function orderByProgress(rows: StandingRow[], progress: number): StandingRow[] {
+  return [...rows].sort((a, b) => {
+    const diff = shownScore(b, progress) - shownScore(a, progress)
+    if (diff !== 0) return diff
+    return previousRank(a) - previousRank(b)
+  })
 }
 
 function Change({ change }: { change: number }) {
@@ -30,25 +84,116 @@ function Change({ change }: { change: number }) {
 }
 
 export function Standings({ results, final }: { results: RevealResult[]; final: boolean }) {
-  const rows = standings(results)
-  const podium = final ? rows.slice(0, 3) : []
-  const rest = final ? rows.slice(3) : rows
+  const rows = useMemo(() => standings(results), [results])
+  const reduce = useRef(typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches).current
+  const [progress, setProgress] = useState(reduce ? 1 : 0)
+  const [podiumOn, setPodiumOn] = useState(Boolean(reduce && final))
+
+  useEffect(() => {
+    if (reduce) return
+    let frame = 0
+    let ticking = true
+    startTicker()
+    const start = performance.now()
+    const tick = (time: number) => {
+      const next = Math.min(1, (time - start) / RACE_MS)
+      setProgress(next)
+      if (next < 1) frame = requestAnimationFrame(tick)
+      else if (ticking) {
+        ticking = false
+        stopTicker()
+      }
+    }
+    frame = requestAnimationFrame(tick)
+    return () => {
+      cancelAnimationFrame(frame)
+      if (ticking) {
+        ticking = false
+        stopTicker()
+      }
+    }
+  }, [reduce, rows])
+
+  useEffect(() => {
+    if (!final || progress < 1) return
+    const id = window.setTimeout(() => setPodiumOn(true), reduce ? 0 : 450)
+    return () => window.clearTimeout(id)
+  }, [final, progress, reduce])
+
+  const ordered = useMemo(() => orderByProgress(rows, progress), [rows, progress])
+
+  if (final && podiumOn) return <Podium rows={orderByProgress(rows, 1)} />
+
+  return <Race rows={ordered} progress={progress} final={final} />
+}
+
+function Race({ rows, progress, final }: { rows: StandingRow[]; progress: number; final: boolean }) {
+  const itemRefs = useRef(new Map<string, HTMLLIElement>())
+  const tops = useRef(new Map<string, number>())
+  const order = rows.map((row) => row.result.teamId).join('|')
+
+  useLayoutEffect(() => {
+    const next = new Map<string, number>()
+    for (const [id, el] of itemRefs.current) {
+      const top = el.getBoundingClientRect().top
+      const before = tops.current.get(id)
+      next.set(id, top)
+      if (before == null) continue
+      const dy = before - top
+      if (Math.abs(dy) < 1) continue
+      el.animate([{ transform: `translateY(${dy}px)` }, { transform: 'translateY(0)' }], {
+        duration: 420,
+        easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
+      })
+    }
+    tops.current = next
+  }, [order])
 
   return (
     <div className="standings">
       <p className="answer-kicker">{final ? 'Final standings' : 'Standings'}</p>
-      {final && podium.length > 0 && (
+      <ol className={rows.length > 8 ? 'standing-list race dense' : 'standing-list race'}>
+        {rows.map((row, index) => {
+          const liveRank = index + 1
+          return (
+            <li
+              key={row.result.teamId}
+              ref={(node) => {
+                if (node) itemRefs.current.set(row.result.teamId, node)
+                else itemRefs.current.delete(row.result.teamId)
+              }}
+              className={liveRank === 1 ? 'lead' : undefined}
+            >
+              <b className="rank">{liveRank}</b>
+              <i style={{ background: row.result.color }} />
+              <strong>{teamLabel(row.result.teammate1, row.result.teammate2)}</strong>
+              <Change change={previousRank(row) - liveRank} />
+              <em>{formatPoints(shownScore(row, progress))}</em>
+            </li>
+          )
+        })}
+      </ol>
+    </div>
+  )
+}
+
+function Podium({ rows }: { rows: StandingRow[] }) {
+  const podium = rows.slice(0, 3)
+  const rest = rows.slice(3)
+
+  return (
+    <div className="standings">
+      <p className="answer-kicker">Final standings</p>
+      {podium.length > 0 && (
         <div className="podium">
           {[1, 0, 2]
             .filter((slot) => podium[slot])
             .map((slot) => {
               const row = podium[slot]
               return (
-                <div key={row.result.teamId} className={`podium-slot place-${row.rank}`} style={{ animationDelay: `${(2 - slot) * 0.5}s` }}>
+                <div key={row.result.teamId} className={`podium-slot place-${row.rank}`} style={{ animationDelay: `${(2 - slot) * 0.12}s` }}>
                   <strong>{teamLabel(row.result.teammate1, row.result.teammate2)}</strong>
-                  <span className="podium-score">
-                    <CountUp from={row.previousTotal} to={row.result.totalScore} />
-                  </span>
+                  <span className="podium-score">{formatPoints(row.result.totalScore)}</span>
                   <div className="podium-block" style={{ background: row.result.color }}>
                     {row.rank}
                   </div>
@@ -57,23 +202,19 @@ export function Standings({ results, final }: { results: RevealResult[]; final: 
             })}
         </div>
       )}
-      <ol className={rows.length > 8 ? 'standing-list dense' : 'standing-list'}>
-        {rest.map((row, index) => (
-          <li
-            key={row.result.teamId}
-            className={row.rank === 1 ? 'lead' : undefined}
-            style={{ animationDelay: `${index * 0.08}s` }}
-          >
-            <b className="rank">{row.rank}</b>
-            <i style={{ background: row.result.color }} />
-            <strong>{teamLabel(row.result.teammate1, row.result.teammate2)}</strong>
-            <Change change={row.change} />
-            <em>
-              <CountUp from={row.previousTotal} to={row.result.totalScore} />
-            </em>
-          </li>
-        ))}
-      </ol>
+      {rest.length > 0 && (
+        <ol className={rows.length > 8 ? 'standing-list dense' : 'standing-list'}>
+          {rest.map((row) => (
+            <li key={row.result.teamId}>
+              <b className="rank">{row.rank}</b>
+              <i style={{ background: row.result.color }} />
+              <strong>{teamLabel(row.result.teammate1, row.result.teammate2)}</strong>
+              <Change change={row.change} />
+              <em>{formatPoints(row.result.totalScore)}</em>
+            </li>
+          ))}
+        </ol>
+      )}
     </div>
   )
 }

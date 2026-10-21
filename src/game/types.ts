@@ -129,18 +129,8 @@ export type HostState = TimerFields & {
   guesses: GuessRow[]
 }
 
-export const TEAM_COLORS = [
-  '#2f9e6b',
-  '#3b82f6',
-  '#e0a100',
-  '#e15a3a',
-  '#a855f7',
-  '#14b8c4',
-  '#f07316',
-  '#ec4899',
-  '#84a30d',
-  '#d4a017',
-] as const
+export const TEAM_COLORS = ['#0073ff', '#fff824', '#ff2424'] as const
+export const TEAM_COLOR_NAMES = ['Blue', 'Yellow', 'Red'] as const
 
 export function formatClock(ms: number): string {
   const total = Math.max(0, Math.ceil(ms / 1000))

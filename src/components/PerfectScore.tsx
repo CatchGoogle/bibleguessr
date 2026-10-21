@@ -2,10 +2,13 @@ import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { CountUp } from './Standings.tsx'
 import { formatPoints, PERFECT_SCORE } from '../game/scoring.ts'
+import { playPerfect } from '../game/sounds.ts'
 import { teamLabel } from '../game/types.ts'
 import type { RevealResult } from '../game/types.ts'
 
 const SPARKS = Array.from({ length: 20 }, (_, index) => index)
+
+export const PERFECT_HOLD_MS = 5600
 
 export function PerfectScore({ teams }: { teams: RevealResult[] }) {
   const reduce = useRef(typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches).current
@@ -13,7 +16,8 @@ export function PerfectScore({ teams }: { teams: RevealResult[] }) {
   const [gone, setGone] = useState(false)
 
   useEffect(() => {
-    const id = window.setTimeout(() => setGone(true), reduce ? 2400 : 5600)
+    if (reduce) playPerfect()
+    const id = window.setTimeout(() => setGone(true), reduce ? 2400 : PERFECT_HOLD_MS)
     return () => window.clearTimeout(id)
   }, [reduce])
 
@@ -37,7 +41,7 @@ export function PerfectScore({ teams }: { teams: RevealResult[] }) {
           {reduce ? (
             formatPoints(PERFECT_SCORE)
           ) : (
-            <CountUp from={0} to={PERFECT_SCORE} ms={1500} onComplete={() => setHit(true)} />
+            <CountUp from={0} to={PERFECT_SCORE} ms={1500} onComplete={() => { setHit(true); playPerfect() }} />
           )}
         </p>
         <ul className="perfect-teams">

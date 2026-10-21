@@ -3,7 +3,7 @@ import { ConnectionBadge } from '../components/ConnectionBadge.tsx'
 import { Wordmark } from '../components/Wordmark.tsx'
 import { BOOKS, chapterCount, MAX_VERSE } from '../game/books.ts'
 import { distanceLabel, formatPoints, formatReference } from '../game/scoring.ts'
-import { TEAM_COLORS, formatClock, guessesOpen, remainingMs, teamLabel, timerState } from '../game/types.ts'
+import { TEAM_COLORS, TEAM_COLOR_NAMES, formatClock, guessesOpen, remainingMs, teamLabel, timerState } from '../game/types.ts'
 import type { PublicGame } from '../game/types.ts'
 import { joinTeam, reportAway, submitGuess, teamHeartbeat } from '../lib/api.ts'
 import { clearTeam, readTeam, writeTeam } from '../lib/storage.ts'
@@ -117,7 +117,7 @@ function JoinForm({ onJoin }: { onJoin: (team: StoredTeam) => Promise<void> }) {
             className={color === swatch ? 'swatch selected' : 'swatch'}
             style={{ background: swatch }}
             onClick={() => setColor(swatch)}
-            aria-label={`Color ${index + 1}`}
+            aria-label={TEAM_COLOR_NAMES[index]}
             aria-pressed={color === swatch}
           />
         ))}

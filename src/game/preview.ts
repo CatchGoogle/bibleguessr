@@ -1,10 +1,11 @@
 import type { MapPin, PublicGame, RevealResult } from './types.ts'
+import { TEAM_COLORS } from './types.ts'
 
 const previewTeams = [
-  { id: 'a', teammate1: 'Anna', teammate2: 'Ben', color: '#2f9e6b', submitted: true },
-  { id: 'b', teammate1: 'Chloe', teammate2: 'Dan', color: '#3b82f6', submitted: true },
-  { id: 'c', teammate1: 'Eve', teammate2: 'Felix', color: '#e0a100', submitted: false },
-  { id: 'd', teammate1: 'Grace', teammate2: 'Hugo', color: '#e15a3a', submitted: true },
+  { id: 'a', teammate1: 'Anna', teammate2: 'Ben', color: TEAM_COLORS[0], submitted: true },
+  { id: 'b', teammate1: 'Chloe', teammate2: 'Dan', color: TEAM_COLORS[1], submitted: true },
+  { id: 'c', teammate1: 'Eve', teammate2: 'Felix', color: TEAM_COLORS[2], submitted: false },
+  { id: 'd', teammate1: 'Grace', teammate2: 'Hugo', color: TEAM_COLORS[0], submitted: true },
 ]
 
 const previewResults: RevealResult[] = [
@@ -12,7 +13,7 @@ const previewResults: RevealResult[] = [
     teamId: 'a',
     teammate1: 'Anna',
     teammate2: 'Ben',
-    color: '#2f9e6b',
+    color: TEAM_COLORS[0],
     guessBook: 'John',
     guessChapter: 3,
     guessVerse: 16,
@@ -27,7 +28,7 @@ const previewResults: RevealResult[] = [
     teamId: 'd',
     teammate1: 'Grace',
     teammate2: 'Hugo',
-    color: '#e15a3a',
+    color: TEAM_COLORS[0],
     guessBook: 'John',
     guessChapter: 1,
     guessVerse: 1,
@@ -42,7 +43,7 @@ const previewResults: RevealResult[] = [
     teamId: 'b',
     teammate1: 'Chloe',
     teammate2: 'Dan',
-    color: '#3b82f6',
+    color: TEAM_COLORS[1],
     guessBook: 'Luke',
     guessChapter: 2,
     guessVerse: 14,
@@ -57,7 +58,7 @@ const previewResults: RevealResult[] = [
     teamId: 'c',
     teammate1: 'Eve',
     teammate2: 'Felix',
-    color: '#e0a100',
+    color: TEAM_COLORS[2],
     guessBook: null,
     guessChapter: null,
     guessVerse: null,
@@ -66,7 +67,7 @@ const previewResults: RevealResult[] = [
     verseScore: 0,
     multiplier: 0,
     score: 0,
-    totalScore: 4000,
+    totalScore: 6000,
   },
 ]
 
@@ -86,7 +87,7 @@ const crowdNames: [string, string][] = [
   ['Uma', 'Victor'],
   ['Wren', 'Xavier'],
 ]
-const crowdColors = ['#2f9e6b', '#3b82f6', '#e0a100', '#e15a3a', '#a855f7', '#14b8c4', '#f07316', '#ec4899', '#84a30d', '#d4a017', '#6366f1', '#0ea5e9']
+const crowdColors = TEAM_COLORS
 const crowdSpots: [string, number][] = [
   ['John', 3],
   ['John', 3],
@@ -105,7 +106,7 @@ function crowdTeams() {
     id: `t${index}`,
     teammate1: a,
     teammate2: b,
-    color: crowdColors[index],
+    color: crowdColors[index % crowdColors.length],
     submitted: index < crowdSpots.length,
   }))
 }
@@ -115,7 +116,7 @@ function crowdPins(): MapPin[] {
     teamId: `t${index}`,
     teammate1: crowdNames[index][0],
     teammate2: crowdNames[index][1],
-    color: crowdColors[index],
+    color: crowdColors[index % crowdColors.length],
     book,
     chapter,
   }))

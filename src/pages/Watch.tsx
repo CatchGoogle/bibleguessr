@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ConnectionBadge } from '../components/ConnectionBadge.tsx'
-import { Standings } from '../components/Standings.tsx'
-import { PerfectScore } from '../components/PerfectScore.tsx'
+import { CountUp, Standings } from '../components/Standings.tsx'
+import { PERFECT_HOLD_MS, PerfectScore } from '../components/PerfectScore.tsx'
 import { Timeline } from '../components/Timeline.tsx'
 import { Wordmark } from '../components/Wordmark.tsx'
 import { previewGame } from '../game/preview.ts'
 import type { PreviewPhase } from '../game/preview.ts'
-import { distanceLabel, formatPoints, formatReference, isPerfectScore } from '../game/scoring.ts'
+import { distanceLabel, formatReference, isPerfectScore } from '../game/scoring.ts'
+import { playCountdown, playTimeUp, soundNeedsUnlock, unlockSound } from '../game/sounds.ts'
 import { bandFor } from '../game/standings.ts'
 import { BAND_COLORS, formatClock, remainingMs, teamLabel, timerState } from '../game/types.ts'
-import type { Phase, PublicGame } from '../game/types.ts'
+import type { Phase, PublicGame, TimerState } from '../game/types.ts'
 import { sitePath } from '../lib/site.ts'
 import { useNow, usePublicGame } from '../lib/useGame.ts'
 
@@ -29,6 +30,7 @@ export function Watch({ preview = false }: { preview?: boolean }) {
       <div className="watch-fit" style={{ width: STAGE_WIDTH * scale, height: STAGE_HEIGHT * scale }}>
         <div className="watch-stage" style={{ transform: `scale(${scale})` }}>
           {preview && <PreviewSwitch phase={previewPhase} onChange={setPreviewPhase} />}
+          <SoundGate />
           {!preview && live.loading && !live.game && <p className="watch-message">Opening the game…</p>}
           {!preview && live.error && !live.game && <p className="watch-message">{live.error}</p>}
           {!preview && live.game && <ConnectionBadge connection={live.connection} dark />}
@@ -107,6 +109,7 @@ function GuessingView({ game, now, roundLabel }: { game: PublicGame; now: number
   const tone = state === 'idle' ? '' : remaining <= 10_000 ? ' danger' : remaining <= 30_000 ? ' warn' : ''
   const teams = game.snapshot.teams
   const locked = teams.filter((team) => team.submitted).length
+  useCountdownChime(remaining, game.phase, state, game.currentRound)
 
   return (
     <div className="stage-layout">
@@ -240,7 +243,22 @@ function RevealView({
                         : '–'}
                     </div>
                     <div className="rc-score">
-                      <em>{result.guessBook ? `+${formatPoints(result.score)}` : '–'}</em>
+                      <em>
+                        {result.guessBook ? (
+                          <>
+                            +
+                            <CountUp
+                              from={0}
+                              to={result.score}
+                              ms={1500}
+                              delay={perfects.length > 0 ? PERFECT_HOLD_MS : 0}
+                              ticker
+                            />
+                          </>
+                        ) : (
+                          '–'
+                        )}
+                      </em>
                       {result.guessBook && result.multiplier > 1.001 && <small>×{result.multiplier.toFixed(2)} speed</small>}
                     </div>
                   </li>
@@ -326,6 +344,57 @@ const PREVIEW_PHASES: { value: PreviewPhase; label: string }[] = [
   { value: 'finalwait', label: 'Final (held)' },
   { value: 'final', label: 'Final' },
 ]
+
+function useCountdownChime(remaining: number, phase: Phase, state: TimerState, round: number) {
+  const last = useRef<number | null>(null)
+  const roundSeen = useRef(round)
+  const second = Math.ceil(remaining / 1000)
+
+  useEffect(() => {
+    if (roundSeen.current !== round) {
+      roundSeen.current = round
+      last.current = null
+    }
+    if (phase !== 'guessing' || state === 'idle') {
+      last.current = null
+      return
+    }
+    if (state === 'paused') return
+    if (last.current === null) {
+      last.current = second
+      return
+    }
+    if (second === last.current) return
+    if (second > last.current) {
+      last.current = second
+      return
+    }
+    const previous = last.current
+    last.current = second
+    if (second >= 1 && second <= 5) playCountdown(second)
+    if (previous > 0 && second <= 0) playTimeUp()
+  }, [second, phase, state, round])
+}
+
+function SoundGate() {
+  const [locked, setLocked] = useState(() => soundNeedsUnlock())
+
+  useEffect(() => {
+    const open = () => {
+      unlockSound()
+      setLocked(false)
+    }
+    window.addEventListener('pointerdown', open)
+    return () => window.removeEventListener('pointerdown', open)
+  }, [])
+
+  if (!locked) return null
+  return (
+    <button className="sound-unlock" type="button" onClick={() => { unlockSound(); setLocked(false) }}>
+      Click for sound
+    </button>
+  )
+}
 
 function PreviewSwitch({ phase, onChange }: { phase: PreviewPhase; onChange: (phase: PreviewPhase) => void }) {
   return (
