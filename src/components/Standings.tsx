@@ -89,6 +89,8 @@ export function Standings({ results, final }: { results: RevealResult[]; final: 
   const [progress, setProgress] = useState(reduce ? 1 : 0)
   const [podiumOn, setPodiumOn] = useState(Boolean(reduce && final))
 
+  // Play once per visit. The viewer replaces the results array every few seconds
+  // while this round stays on screen; tying the race to that array restarts the count.
   useEffect(() => {
     if (reduce) return
     let frame = 0
@@ -112,7 +114,7 @@ export function Standings({ results, final }: { results: RevealResult[]; final: 
         stopTicker()
       }
     }
-  }, [reduce, rows])
+  }, [reduce])
 
   useEffect(() => {
     if (!final || progress < 1) return
