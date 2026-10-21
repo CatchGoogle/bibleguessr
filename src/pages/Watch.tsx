@@ -29,7 +29,7 @@ export function Watch({ preview = false }: { preview?: boolean }) {
   return (
     <div className="watch-root">
       <div className="watch-fit" style={{ width: STAGE_WIDTH * scale, height: STAGE_HEIGHT * scale }}>
-        <div className="watch-stage" style={{ transform: `scale(${scale})` }}>
+        <div className="watch-stage" style={{ zoom: scale }}>
           {preview && <PreviewSwitch phase={previewPhase} onChange={setPreviewPhase} />}
           {!preview && live.loading && !live.game && <p className="watch-message">Opening the game…</p>}
           {!preview && live.error && !live.game && <p className="watch-message">{live.error}</p>}
