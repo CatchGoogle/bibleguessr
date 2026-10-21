@@ -7,7 +7,7 @@ import { Wordmark } from '../components/Wordmark.tsx'
 import { previewGame } from '../game/preview.ts'
 import type { PreviewPhase } from '../game/preview.ts'
 import { distanceLabel, formatReference, isPerfectScore } from '../game/scoring.ts'
-import { playCountdown, playTimeUp, unlockSound } from '../game/sounds.ts'
+import { playCountdown, playGuess, playRoundStart, playTimeUp, unlockSound } from '../game/sounds.ts'
 import { bandFor } from '../game/standings.ts'
 import { BAND_COLORS, formatClock, remainingMs, teamLabel, timerState } from '../game/types.ts'
 import type { Phase, PublicGame, TimerState } from '../game/types.ts'
@@ -291,6 +291,7 @@ function useRoundIntro(phase: Phase, round: number, effects: boolean): number | 
 
   useEffect(() => {
     if (intro === null) return
+    playRoundStart()
     const id = window.setTimeout(() => setIntro(null), effects ? INTRO_MS : 1400)
     return () => window.clearTimeout(id)
   }, [intro, effects])
@@ -307,9 +308,11 @@ function usePinShake(game: PublicGame, effects: boolean): boolean {
   useEffect(() => {
     const before = previous.current
     previous.current = { round: game.currentRound, count, phase: game.phase }
-    if (!effects || game.phase !== 'guessing') return
+    if (game.phase !== 'guessing') return
     if (before.round !== game.currentRound || before.phase !== 'guessing') return
     if (count <= before.count) return
+    playGuess()
+    if (!effects) return
     setShaking(true)
     const id = window.setTimeout(() => setShaking(false), 500)
     return () => window.clearTimeout(id)
