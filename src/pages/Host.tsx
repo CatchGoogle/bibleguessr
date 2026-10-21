@@ -37,6 +37,11 @@ type Dialog =
 type Action = { label: string; onClick: () => void; disabled?: boolean }
 
 const emptyDraft: Draft = { book: 'John', chapter: '3', verse: '16', passage: '' }
+const VERSE_PROFILES = [
+  { id: 1, label: 'Official' },
+  { id: 2, label: 'Practice A' },
+  { id: 3, label: 'Practice B' },
+]
 const ONLINE_WINDOW_MS = 40_000
 
 export function Host() {
@@ -646,7 +651,31 @@ export function Host() {
             </section>
 
             <section className="panel">
-              <h2>Rounds</h2>
+              <div className="section-head">
+                <h2>Rounds</h2>
+              </div>
+              <div className="button-row profile-row">
+                {VERSE_PROFILES.map((item) => (
+                  <button
+                    key={item.id}
+                    className={state.verseProfile === item.id ? 'btn tiny primary' : 'btn tiny'}
+                    type="button"
+                    disabled={busy}
+                    onClick={() => {
+                      if (state.verseProfile === item.id) return
+                      if (!window.confirm(`Switch to ${item.label}? The projector returns to the lobby.`)) return
+                      void run(() => hostApi.setProfile(item.id))
+                    }}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+              <p className="quiet">
+                {state.verseProfile === 1
+                  ? 'This is the official list. Practice lists keep their own passages and scores.'
+                  : 'Official verses are hidden. Guesses here stay on this list.'}
+              </p>
               <ol className="round-list">
                 {state.verses.map((verse) => (
                   <li
@@ -692,7 +721,9 @@ export function Host() {
                   </li>
                 ))}
               </ol>
-              {state.verses.length === 0 && <p>Add the first passage with the form above.</p>}
+              {state.verses.length === 0 && (
+                <p>{state.verseProfile === 1 ? 'Add the first passage with the form above.' : 'Add a practice passage with the form above.'}</p>
+              )}
               <p className="quiet">Click a round to edit it. The green outline is the round currently on screen.</p>
             </section>
           </div>
@@ -714,8 +745,8 @@ export function Host() {
       )}
       {state && dialog?.kind === 'reset' && (
         <ConfirmDialog
-          title="Reset every score?"
-          body="This deletes all guesses for every round and cannot be undone."
+          title="Reset scores for this list?"
+          body="This deletes the guesses on the verse list you have open. The other lists are kept."
           confirmLabel="Reset scores"
           requireText="reset"
           busy={busy}

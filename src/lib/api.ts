@@ -199,6 +199,7 @@ export function parseHostState(value: unknown): HostState {
     effectsEnabled: row.effectsEnabled !== false,
     standingsRevealed: row.standingsRevealed === true,
     betweenRounds: row.betweenRounds === true,
+    verseProfile: num(row.verseProfile) || 1,
     roundStartedAt: row.roundStartedAt == null ? null : text(row.roundStartedAt),
     flags: asArray(row.flags).map((item) => {
       const flag = asRecord(item)
@@ -291,6 +292,7 @@ export const hostApi = {
   prepareRound: (round: number) => hostCall('host_prepare_round', { p_round: round }),
   setStandings: (show: boolean) => hostCall('host_reveal_standings', { p_show: show }),
   setRound: (round: number) => hostCall('host_set_round', { p_round: round }),
+  setProfile: (profile: number) => hostCall('host_set_profile', { p_profile: profile }),
   timer: (action: 'start' | 'pause' | 'reset' | 'duration', durationMs?: number) =>
     hostCall('host_timer', { p_action: action, p_duration_ms: durationMs ?? null }),
   updateTeam: (teamId: string, teammate1: string, teammate2: string, color: string) =>

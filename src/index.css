@@ -72,6 +72,8 @@ h1, h2, h3 { margin: 0 0 12px; }
   flex-wrap: wrap;
 }
 
+.profile-row { margin-bottom: 8px; }
+
 .join-row input { width: 6.5rem; letter-spacing: 0.14em; text-transform: uppercase; }
 
 label { display: grid; gap: 6px; font-size: 0.92rem; font-weight: 600; }

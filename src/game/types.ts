@@ -120,6 +120,7 @@ export type HostState = TimerFields & {
   effectsEnabled: boolean
   standingsRevealed: boolean
   betweenRounds: boolean
+  verseProfile: number
   roundStartedAt: string | null
   flags: RoundFlag[]
   serverNow: string | null
