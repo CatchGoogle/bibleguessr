@@ -18,8 +18,12 @@ export function ScoreMatrix({
     .filter((team) => team.active || state.guesses.some((guess) => guess.teamId === team.id))
     .sort((a, b) => Number(b.active) - Number(a.active))
 
+  const throughRound = state.currentRound
   const totals = new Map<string, number>()
-  for (const guess of state.guesses) totals.set(guess.teamId, (totals.get(guess.teamId) ?? 0) + guess.score)
+  for (const guess of state.guesses) {
+    if (guess.roundNumber > throughRound) continue
+    totals.set(guess.teamId, (totals.get(guess.teamId) ?? 0) + guess.score)
+  }
   const best = Math.max(0, ...totals.values())
 
   if (teams.length === 0 || state.verses.length === 0) {
@@ -78,7 +82,7 @@ export function ScoreMatrix({
         </tbody>
         <tfoot>
           <tr>
-            <th scope="row">Total</th>
+            <th scope="row">{state.verses.some((verse) => verse.roundNumber > throughRound) ? `Through ${throughRound}` : 'Total'}</th>
             {teams.map((team) => {
               const total = totals.get(team.id) ?? 0
               return (
