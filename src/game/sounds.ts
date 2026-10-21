@@ -3,24 +3,14 @@ let master: GainNode | null = null
 let reverbSend: GainNode | null = null
 let tickerUsers = 0
 let tickerId: number | null = null
+let tickerStarted = 0
 let tickStep = 0
 
 // Notes in a pentatonic scale keep every sound consonant, whatever order they play in.
 const PENTATONIC = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.66, 1318.51]
 
-function impulse(ctx: AudioContext): AudioBuffer {
-  const length = Math.floor(ctx.sampleRate * 1.6)
-  const buffer = ctx.createBuffer(2, length, ctx.sampleRate)
-  for (let channel = 0; channel < 2; channel += 1) {
-    const data = buffer.getChannelData(channel)
-    for (let i = 0; i < length; i += 1) {
-      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 2.6)
-    }
-  }
-  return buffer
-}
-
-// One shared chain: a soft low-pass to take the edge off, plus a small room reverb.
+// One shared chain. A short echo stands in for a reverb convolver, which keeps a large
+// buffer alive and has crashed embedded viewers such as ProPresenter.
 function context(): AudioContext {
   if (audio) return audio
   const ctx = new AudioContext()
@@ -30,21 +20,21 @@ function context(): AudioContext {
   soften.type = 'lowpass'
   soften.frequency.value = 5200
   soften.Q.value = 0.4
-  const compressor = ctx.createDynamicsCompressor()
-  compressor.threshold.value = -16
-  compressor.ratio.value = 3
   out.connect(soften)
-  soften.connect(compressor)
-  compressor.connect(ctx.destination)
+  soften.connect(ctx.destination)
 
-  const reverb = ctx.createConvolver()
-  reverb.buffer = impulse(ctx)
+  const echo = ctx.createDelay(0.25)
+  echo.delayTime.value = 0.07
+  const feedback = ctx.createGain()
+  feedback.gain.value = 0.18
   const wet = ctx.createGain()
-  wet.gain.value = 0.32
-  reverbSend = ctx.createGain()
-  reverbSend.connect(reverb)
-  reverb.connect(wet)
+  wet.gain.value = 0.28
+  echo.connect(feedback)
+  feedback.connect(echo)
+  echo.connect(wet)
   wet.connect(out)
+  reverbSend = ctx.createGain()
+  reverbSend.connect(echo)
 
   master = out
   audio = ctx
@@ -79,17 +69,26 @@ function voice({ freq, at = 0, length = 0.4, gain = 0.1, type = 'sine', glideFro
   amp.gain.exponentialRampToValueAtTime(gain, start + attack)
   amp.gain.exponentialRampToValueAtTime(0.0001, start + length)
   amp.connect(master)
+  let send: GainNode | null = null
   if (reverbSend && reverb > 0) {
-    const send = ctx.createGain()
+    send = ctx.createGain()
     send.gain.value = reverb
     amp.connect(send)
     send.connect(reverbSend)
   }
 
   const layers: [number, number][] = [[1, 1], ...partials]
+  const nodes: AudioNode[] = send ? [amp, send] : [amp]
+  let ended = 0
+  const release = () => {
+    ended += 1
+    if (ended < layers.length) return
+    for (const node of nodes) node.disconnect()
+  }
   for (const [ratio, level] of layers) {
     const osc = ctx.createOscillator()
     const layer = ctx.createGain()
+    nodes.push(osc, layer)
     osc.type = type
     if (glideFrom) {
       osc.frequency.setValueAtTime(glideFrom * ratio, start)
@@ -102,6 +101,7 @@ function voice({ freq, at = 0, length = 0.4, gain = 0.1, type = 'sine', glideFro
     if (ratio !== 1) layer.gain.exponentialRampToValueAtTime(0.0001, start + length * 0.6)
     osc.connect(layer)
     layer.connect(amp)
+    osc.onended = release
     osc.start(start)
     osc.stop(stop)
   }
@@ -161,7 +161,16 @@ export function startTicker(): void {
   tickerUsers += 1
   if (tickerId != null) return
   tickStep = 0
-  tickerId = window.setInterval(playPointsTick, 85)
+  tickerStarted = performance.now()
+  tickerId = window.setInterval(() => {
+    if (performance.now() - tickerStarted > 6000) {
+      tickerUsers = 0
+      if (tickerId != null) window.clearInterval(tickerId)
+      tickerId = null
+      return
+    }
+    playPointsTick()
+  }, 85)
 }
 
 export function stopTicker(): void {

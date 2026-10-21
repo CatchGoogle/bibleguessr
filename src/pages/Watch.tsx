@@ -42,7 +42,7 @@ export function Watch({ preview = false }: { preview?: boolean }) {
 }
 
 function Stage({ game }: { game: PublicGame }) {
-  const now = useNow()
+  const now = useNow(game.phase === 'guessing' && timerState(game, Date.now()) === 'running')
   const effects = game.snapshot.effects
   const intro = useRoundIntro(game.phase, game.currentRound, effects)
   const shaking = usePinShake(game, effects)

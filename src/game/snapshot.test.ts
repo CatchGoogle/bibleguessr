@@ -51,4 +51,10 @@ describe('preferNewerGame', () => {
     const late = game(3, 'In the beginning', 3, '2026-01-01T00:00:01Z')
     expect(preferNewerGame(current, late).currentRound).toBe(4)
   })
+
+  it('keeps the object already on screen when a newer copy looks the same', () => {
+    const current = game(4, 'For God so loved', 4, '2026-01-01T00:00:01Z')
+    const repeat = game(4, 'For God so loved', 4, '2026-01-01T00:00:09Z')
+    expect(preferNewerGame(current, repeat)).toBe(current)
+  })
 })

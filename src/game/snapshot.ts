@@ -2,9 +2,24 @@ import type { PublicGame, PublicSnapshot } from './types.ts'
 
 export type SeenPassage = { round: number; text: string | null }
 
+function sameView(a: PublicGame, b: PublicGame): boolean {
+  return (
+    a.phase === b.phase &&
+    a.currentRound === b.currentRound &&
+    a.timerDurationMs === b.timerDurationMs &&
+    a.guessingEndsAt === b.guessingEndsAt &&
+    a.timerPaused === b.timerPaused &&
+    a.timerRemainingMs === b.timerRemainingMs &&
+    JSON.stringify(a.snapshot) === JSON.stringify(b.snapshot)
+  )
+}
+
 // A slower poll or an earlier round-change must not paint over a newer one.
+// An identical picture keeps the object already on screen, so a heartbeat does not repaint the projector.
 export function preferNewerGame(current: PublicGame | null, next: PublicGame): PublicGame {
-  if (!current?.updatedAt || !next.updatedAt) return next
+  if (!current) return next
+  if (sameView(current, next)) return current
+  if (!current.updatedAt || !next.updatedAt) return next
   const nextMs = Date.parse(next.updatedAt)
   const currentMs = Date.parse(current.updatedAt)
   if (!Number.isFinite(nextMs) || !Number.isFinite(currentMs)) return next

@@ -647,9 +647,7 @@ textarea { resize: vertical; }
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: #d7b56a;
-  animation: pulse-hold 1.8s ease-in-out infinite;
 }
-@keyframes pulse-hold { 50% { opacity: 0.45; } }
 
 .watch-root {
   position: fixed;
@@ -739,9 +737,7 @@ textarea { resize: vertical; }
 }
 
 .stage-clock.warn { color: #f0a030; }
-.stage-clock.danger { color: #ff5a4a; animation: clockPulse 1s ease-in-out infinite; }
-
-@keyframes clockPulse { 50% { transform: scale(1.06); } }
+.stage-clock.danger { color: #ff5a4a; }
 
 .timesup-label { margin: 8px 0 0; font-size: 40px; color: #ff8a7a; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
 
@@ -844,7 +840,6 @@ textarea { resize: vertical; }
   place-items: center;
   align-content: center;
   background: rgba(10, 8, 6, 0.94);
-  backdrop-filter: blur(8px);
   text-align: center;
   pointer-events: none;
   opacity: 1;
@@ -993,7 +988,7 @@ textarea { resize: vertical; }
   inset: -14px;
   border-radius: 50%;
   border: 4px solid #d7b56a;
-  animation: ping 1.6s ease-out infinite;
+  animation: ping 1.6s ease-out 2;
 }
 
 @keyframes pop { to { transform: translate(-50%, -50%) scale(1); } }
@@ -1009,7 +1004,7 @@ textarea { resize: vertical; }
 
 .answer-kicker { font-size: 40px; letter-spacing: 0.12em; text-transform: uppercase; color: #d7b56a; margin: 0 0 14px; }
 
-.drumroll { font-family: Fraunces, Georgia, serif; font-size: 80px; line-height: 1; margin: 0 0 30px; animation: blink 1.4s ease-in-out infinite; }
+.drumroll { font-family: Fraunces, Georgia, serif; font-size: 80px; line-height: 1; margin: 0 0 30px; animation: blink 1.4s ease-in-out 4; }
 
 .answer-card { animation: answerIn 0.8s cubic-bezier(0.34, 1.3, 0.64, 1) both; }
 .answer-ref { font-family: Fraunces, Georgia, serif; font-size: 170px; line-height: 0.95; margin: 0 0 30px; }
@@ -1175,6 +1170,8 @@ textarea { resize: vertical; }
 
 .watch-message { position: absolute; inset: 0; display: grid; place-items: center; font-size: 48px; }
 
+.watch-stage .connection-badge i { animation: none; opacity: 1; }
+
 .watch-stage .connection-badge {
   position: absolute;
   z-index: 7;
@@ -1290,7 +1287,7 @@ textarea { resize: vertical; }
   mask-image: radial-gradient(circle, #000 0%, transparent 68%);
 }
 
-.perfect-overlay.hit .perfect-rays { animation: spinRays 16s linear infinite; }
+.perfect-overlay.hit .perfect-rays { animation: spinRays 8s linear forwards; }
 
 .perfect-flash {
   position: absolute;

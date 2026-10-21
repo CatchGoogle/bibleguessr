@@ -8,13 +8,26 @@ import { getSupabase } from './supabase.ts'
 
 export type Connection = 'connecting' | 'live' | 'reconnecting'
 
-// Current time on the server's clock, refreshed five times a second.
-export function useNow(): number {
+// Current time on the server's clock. One tick per second, and only while a clock is running,
+// so a projector left on the standings is not repainting several times a second.
+export function useNow(active = true): number {
   const [now, setNow] = useState(() => serverNowMs())
+  const [wasActive, setWasActive] = useState(active)
+  if (active !== wasActive) {
+    setWasActive(active)
+    if (active) setNow(serverNowMs())
+  }
   useEffect(() => {
-    const id = window.setInterval(() => setNow(serverNowMs()), 200)
-    return () => window.clearInterval(id)
-  }, [])
+    if (!active) return
+    let timer = 0
+    const tick = () => {
+      const next = serverNowMs()
+      setNow(next)
+      timer = window.setTimeout(tick, Math.max(250, 1000 - (next % 1000) + 30))
+    }
+    timer = window.setTimeout(tick, Math.max(250, 1000 - (serverNowMs() % 1000) + 30))
+    return () => window.clearTimeout(timer)
+  }, [active])
   return now
 }
 
