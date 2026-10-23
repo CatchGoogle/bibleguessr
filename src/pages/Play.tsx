@@ -56,11 +56,15 @@ export function Play() {
     )
   }
 
+  const compact = Boolean(game && team && game.phase === 'guessing')
+
   return (
-    <main className="page narrow play-page">
-      <header className="topbar">
-        <Wordmark />
-      </header>
+    <main className={compact ? 'page narrow play-page play-compact' : 'page narrow play-page'}>
+      {!compact && (
+        <header className="topbar">
+          <Wordmark />
+        </header>
+      )}
       <ConnectionBadge connection={connection} />
       {(error || formError) && <p className="notice error">{error || formError}</p>}
       {loading && !game && <p>Loading the game…</p>}
@@ -209,23 +213,36 @@ function GuessScreen({
   useAwayReporter(team.id, game.currentRound, game.phase === 'guessing' && !locked && open)
 
   const clockClass = remaining <= 10_000 && game.phase === 'guessing' && state !== 'idle' ? 'clock urgent' : 'clock'
+  const guessing = game.phase === 'guessing'
 
   return (
-    <section className="stack">
-      <p className="eyebrow">
-        {teamLabel(team.teammate1, team.teammate2)} · Round {game.currentRound}
-      </p>
-      {game.phase !== 'lobby' && <p className={clockClass}>{formatClock(remaining)}</p>}
-      {game.phase === 'guessing' && (
-        <p className="quiet">
-          {lockedCount} of {game.snapshot.teams.length} teams locked in
+    <section className={guessing ? 'guess-screen' : 'stack'}>
+      {game.phase === 'lobby' && (
+        <p className="eyebrow">
+          {teamLabel(team.teammate1, team.teammate2)} · Round {game.currentRound}
         </p>
+      )}
+      {game.phase !== 'lobby' && (
+        <div className="guess-status">
+          <p className="guess-who">{teamLabel(team.teammate1, team.teammate2)}</p>
+          <p className="guess-meta">
+            <span>Round {game.currentRound}</span>
+            <span className={clockClass}>{formatClock(remaining)}</span>
+            {guessing ? (
+              <span>
+                {lockedCount} of {game.snapshot.teams.length}
+              </span>
+            ) : (
+              <span />
+            )}
+          </p>
+        </div>
       )}
       {game.phase === 'lobby' && (
         <p className="panel waiting">Waiting for the host to start the round. Keep this page open.</p>
       )}
       {game.phase !== 'lobby' && (
-        <blockquote className="passage">
+        <blockquote className="passage passage-scroll">
           {game.snapshot.verseText ?? 'The host has not entered this passage yet.'}
         </blockquote>
       )}
@@ -266,6 +283,26 @@ function GuessScreen({
   )
 }
 
+function useKeyboardLift() {
+  const [lift, setLift] = useState(0)
+  useEffect(() => {
+    const viewport = window.visualViewport
+    if (!viewport) return
+    const update = () => {
+      const covered = window.innerHeight - viewport.height - viewport.offsetTop
+      setLift(covered > 80 ? Math.round(covered) : 0)
+    }
+    update()
+    viewport.addEventListener('resize', update)
+    viewport.addEventListener('scroll', update)
+    return () => {
+      viewport.removeEventListener('resize', update)
+      viewport.removeEventListener('scroll', update)
+    }
+  }, [])
+  return lift
+}
+
 function GuessForm({
   teamId,
   onLocked,
@@ -280,8 +317,11 @@ function GuessForm({
   const [book, setBook] = useState('')
   const [chapter, setChapter] = useState('')
   const [verse, setVerse] = useState('')
-  const [confirming, setConfirming] = useState(false)
+  const [armed, setArmed] = useState(false)
   const [busy, setBusy] = useState(false)
+  const chapterRef = useRef<HTMLInputElement>(null)
+  const verseRef = useRef<HTMLInputElement>(null)
+  const lift = useKeyboardLift()
 
   const books = useMemo(() => {
     const needle = query.trim().toLowerCase()
@@ -297,101 +337,119 @@ function GuessForm({
   const chapterOk = Number.isInteger(chapterNumber) && chapterNumber >= 1 && chapterNumber <= maxChapter
   const verseOk = Number.isInteger(verseNumber) && verseNumber >= 1 && verseNumber <= MAX_VERSE
   const valid = Boolean(book) && chapterOk && verseOk
+  const reference = valid ? formatReference(book, chapterNumber, verseNumber) : ''
 
-  if (confirming && valid) {
-    return (
-      <div className="stack panel confirm-guess">
-        <p className="eyebrow">Ready to lock in?</p>
-        <p className="reference">{formatReference(book, chapterNumber, verseNumber)}</p>
-        <p className="quiet">You can’t change this once it’s locked in.</p>
-        <button
-          className="btn primary"
-          type="button"
-          disabled={busy}
-          onClick={() => {
-            setBusy(true)
-            onError(null)
-            void submitGuess(teamId, book, chapterNumber, verseNumber)
-              .then(onLocked)
-              .catch((err: unknown) => {
-                onError(err instanceof Error ? err.message : 'Could not submit.')
-                setConfirming(false)
-              })
-              .finally(() => setBusy(false))
-          }}
-        >
-          {busy ? 'Locking in…' : 'Lock it in'}
-        </button>
-        <button className="btn" type="button" disabled={busy} onClick={() => setConfirming(false)}>
-          Change my guess
-        </button>
-      </div>
-    )
+  function pickBook(name: string) {
+    setBook(name)
+    if (chapter && Number(chapter) > chapterCount(name)) setChapter(String(chapterCount(name)))
+    setArmed(false)
+    chapterRef.current?.focus()
+    chapterRef.current?.select()
+  }
+
+  function lockIn() {
+    if (!valid || busy) return
+    if (!armed) {
+      setArmed(true)
+      return
+    }
+    setBusy(true)
+    onError(null)
+    void submitGuess(teamId, book, chapterNumber, verseNumber)
+      .then(onLocked)
+      .catch((err: unknown) => {
+        onError(err instanceof Error ? err.message : 'Could not submit.')
+        setArmed(false)
+      })
+      .finally(() => setBusy(false))
   }
 
   return (
     <form
-      className="stack panel"
+      className="guess-form"
+      noValidate
       onSubmit={(event) => {
         event.preventDefault()
-        if (valid) setConfirming(true)
+        lockIn()
       }}
     >
-      <div className="chosen">
-        <span className="eyebrow">Your guess</span>
-        <strong>{book ? `${book} ${chapter || '–'}:${verse || '–'}` : 'Pick a book'}</strong>
-      </div>
-
-      <div className="tabs" role="tablist" aria-label="Testament">
-        {(['all', 'OT', 'NT'] as const).map((value) => (
-          <button
-            key={value}
-            type="button"
-            role="tab"
-            aria-selected={testament === value}
-            className={testament === value ? 'tab on' : 'tab'}
-            onClick={() => setTestament(value)}
-          >
-            {value === 'all' ? 'All' : value === 'OT' ? 'Old' : 'New'}
-          </button>
-        ))}
-      </div>
-      <input
-        value={query}
-        onChange={(event) => setQuery(event.target.value)}
-        placeholder="Search books"
-        aria-label="Search books"
-        autoComplete="off"
-      />
-      <ul className="book-grid">
-        {books.map((item) => (
-          <li key={item.name}>
+      <div className="guess-pick">
+        {book ? (
+          <div className="chosen-book">
+            <strong>{book}</strong>
             <button
               type="button"
-              className={item.name === book ? 'selected' : ''}
+              className="change"
               onClick={() => {
-                setBook(item.name)
-                if (chapter && Number(chapter) > chapterCount(item.name)) setChapter(String(chapterCount(item.name)))
+                setBook('')
+                setArmed(false)
               }}
             >
-              {item.name}
+              Change
             </button>
-          </li>
-        ))}
-        {books.length === 0 && <li className="quiet">No book matches that search.</li>}
-      </ul>
+          </div>
+        ) : (
+          <>
+            <div className="book-tools">
+              <div className="tabs" role="tablist" aria-label="Testament">
+                {(['all', 'OT', 'NT'] as const).map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    role="tab"
+                    aria-selected={testament === value}
+                    className={testament === value ? 'tab on' : 'tab'}
+                    onClick={() => setTestament(value)}
+                  >
+                    {value === 'all' ? 'All' : value === 'OT' ? 'Old' : 'New'}
+                  </button>
+                ))}
+              </div>
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search books"
+                aria-label="Search books"
+                autoComplete="off"
+                enterKeyHint="search"
+              />
+            </div>
+            <ul className="book-grid">
+              {books.map((item) => (
+                <li key={item.name}>
+                  <button type="button" onClick={() => pickBook(item.name)}>
+                    {item.name}
+                  </button>
+                </li>
+              ))}
+              {books.length === 0 && <li className="quiet">No book matches that search.</li>}
+            </ul>
+          </>
+        )}
+      </div>
 
-      <div className="split">
+      <div className="guess-dock" style={lift ? { transform: `translateY(-${lift}px)` } : undefined}>
         <label>
           Chapter
           <input
+            ref={chapterRef}
             type="number"
             inputMode="numeric"
+            enterKeyHint="next"
             min={1}
             max={maxChapter || undefined}
+            placeholder={book ? `1–${maxChapter}` : '—'}
             value={chapter}
-            onChange={(event) => setChapter(event.target.value)}
-            disabled={!book}
+            onChange={(event) => {
+              setChapter(event.target.value)
+              setArmed(false)
+            }}
+            onKeyDown={(event) => {
+              if (event.key !== 'Enter') return
+              event.preventDefault()
+              verseRef.current?.focus()
+              verseRef.current?.select()
+            }}
             aria-invalid={Boolean(chapter) && !chapterOk}
             required
           />
@@ -399,23 +457,30 @@ function GuessForm({
         <label>
           Verse
           <input
+            ref={verseRef}
             type="number"
             inputMode="numeric"
+            enterKeyHint="done"
             min={1}
             max={MAX_VERSE}
+            placeholder={book ? `1–${MAX_VERSE}` : '—'}
             value={verse}
-            onChange={(event) => setVerse(event.target.value)}
-            disabled={!book}
+            onChange={(event) => {
+              setVerse(event.target.value)
+              setArmed(false)
+            }}
             aria-invalid={Boolean(verse) && !verseOk}
             required
           />
         </label>
+        {book && chapter && !chapterOk && (
+          <p className="field-error span">Chapters only go to {maxChapter}.</p>
+        )}
+        {armed && valid && <p className="quiet span">Tap again. You can’t change this after it’s locked in.</p>}
+        <button className={armed ? 'btn primary span armed' : 'btn primary span'} type="submit" disabled={!valid || busy}>
+          {busy ? 'Locking in…' : armed ? 'Lock it in' : reference ? `Lock in ${reference}` : 'Lock in'}
+        </button>
       </div>
-      {book && <p className="quiet">{book} has {maxChapter} {maxChapter === 1 ? 'chapter' : 'chapters'}.</p>}
-      {Boolean(chapter) && book && !chapterOk && <p className="field-error">Choose a chapter from 1 to {maxChapter}.</p>}
-      <button className="btn primary" type="submit" disabled={!valid}>
-        Review guess
-      </button>
     </form>
   )
 }

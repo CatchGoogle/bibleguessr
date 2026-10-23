@@ -237,7 +237,52 @@ textarea { resize: vertical; }
 
 .fine { margin-top: 18px; word-break: break-all; }
 
-.play-page .clock { font-size: 2.6rem; }
+.play-page.play-compact {
+  height: 100dvh;
+  max-height: 100dvh;
+  padding: 10px 0 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.play-compact .connection-badge { margin-bottom: 6px; }
+
+.guess-screen {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.guess-status { display: grid; gap: 0; }
+
+.guess-who { margin: 0; font-weight: 650; font-size: 0.95rem; }
+
+.guess-meta {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  color: #6d5844;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.guess-meta span:last-child { text-align: right; }
+
+.play-page .guess-meta .clock { font-size: 1.45rem; margin: 0; color: #1c140c; }
+
+.passage-scroll {
+  max-height: min(28vh, 9.5rem);
+  overflow: auto;
+  flex: none;
+  font-size: 1.12rem;
+  line-height: 1.35;
+  padding: 12px 14px;
+}
 
 @media (max-width: 800px) {
   .host-grid { grid-template-columns: 1fr; }
@@ -384,7 +429,94 @@ textarea { resize: vertical; }
   font-weight: 700;
 }
 
-.confirm-guess .btn { width: 100%; }
+.guess-form {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.guess-pick {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.book-tools {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: grid;
+  gap: 8px;
+  padding-bottom: 8px;
+  background: #efe2cb;
+}
+
+.guess-pick .book-grid {
+  max-height: none;
+  overflow: visible;
+}
+
+.chosen-book {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  padding: 4px 4px 4px 14px;
+  background: rgba(255, 250, 240, 0.84);
+  border: 1px solid rgba(169, 120, 47, 0.28);
+  border-radius: 16px;
+}
+
+.chosen-book strong {
+  font-family: Fraunces, Georgia, serif;
+  font-size: 1.45rem;
+  font-weight: 560;
+}
+
+.chosen-book .change {
+  border: 0;
+  background: transparent;
+  color: #1e6b45;
+  font-weight: 700;
+  min-height: 44px;
+  padding: 10px 14px;
+}
+
+.guess-dock {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 8px 0 calc(10px + env(safe-area-inset-bottom));
+  background: #efe2cb;
+  box-shadow: 0 -16px 16px #efe2cb;
+  position: relative;
+  z-index: 2;
+}
+
+.guess-dock .span { grid-column: 1 / -1; }
+
+.guess-dock label { font-size: 0.78rem; }
+
+.guess-dock input {
+  font-size: 1.35rem;
+  text-align: center;
+  padding: 10px 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.guess-dock .btn {
+  width: 100%;
+  min-height: 48px;
+  white-space: normal;
+}
+
+.guess-dock .quiet { text-align: center; margin: 0; }
 
 /* ---------- Host ---------- */
 
