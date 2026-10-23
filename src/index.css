@@ -292,7 +292,7 @@ textarea { resize: vertical; }
 
 .passage-scroll {
   max-height: min(28vh, 9.5rem);
-  overflow: auto;
+  overflow: hidden;
   flex: none;
   font-size: 1.12rem;
   line-height: 1.35;

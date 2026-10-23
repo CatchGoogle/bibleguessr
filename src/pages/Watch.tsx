@@ -4,6 +4,7 @@ import { CountUp, Standings } from '../components/Standings.tsx'
 import { PERFECT_HOLD_MS, PerfectScore } from '../components/PerfectScore.tsx'
 import { Timeline } from '../components/Timeline.tsx'
 import { Wordmark } from '../components/Wordmark.tsx'
+import { FittedQuote } from '../components/FittedQuote.tsx'
 import { previewGame } from '../game/preview.ts'
 import type { PreviewPhase } from '../game/preview.ts'
 import { distanceLabel, formatReference, isPerfectScore } from '../game/scoring.ts'
@@ -120,9 +121,7 @@ function GuessingView({ game, now, roundLabel }: { game: PublicGame; now: number
         {state === 'ended' && <p className="timesup-label">Time’s up</p>}
       </aside>
       <section className="passage-pane">
-        <blockquote style={{ fontSize: passageFont(game.snapshot.verseText) }}>
-          {game.snapshot.verseText ?? 'Waiting for a passage.'}
-        </blockquote>
+        <FittedQuote text={game.snapshot.verseText ?? 'Waiting for a passage.'} max={96} min={30} />
       </section>
       <aside className={teams.length > 8 ? 'rail teams-rail dense' : 'rail teams-rail'}>
         <h2>
@@ -404,13 +403,6 @@ function PreviewSwitch({ phase, onChange }: { phase: PreviewPhase; onChange: (ph
       ))}
     </div>
   )
-}
-
-function passageFont(text: string | null): number {
-  const length = text?.length ?? 0
-  if (length > 420) return 58
-  if (length > 240) return 74
-  return 96
 }
 
 function useStageScale() {

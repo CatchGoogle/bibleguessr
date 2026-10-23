@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ConnectionBadge } from '../components/ConnectionBadge.tsx'
+import { FittedQuote } from '../components/FittedQuote.tsx'
 import { Wordmark } from '../components/Wordmark.tsx'
 import { BOOKS, chapterCount, MAX_VERSE } from '../game/books.ts'
 import { distanceLabel, formatPoints, formatReference } from '../game/scoring.ts'
@@ -242,9 +243,12 @@ function GuessScreen({
         <p className="panel waiting">Waiting for the host to start the round. Keep this page open.</p>
       )}
       {game.phase !== 'lobby' && (
-        <blockquote className="passage passage-scroll">
-          {game.snapshot.verseText ?? 'The host has not entered this passage yet.'}
-        </blockquote>
+        <FittedQuote
+          className="passage passage-scroll"
+          text={game.snapshot.verseText ?? 'The host has not entered this passage yet.'}
+          max={18}
+          min={13}
+        />
       )}
       {game.phase === 'reveal' && reveal && !answerShown && <p className="panel waiting">Revealing the answer…</p>}
       {game.phase === 'reveal' && reveal && answerShown && (
