@@ -11,7 +11,7 @@ import type {
   TeamRow,
   VerseRow,
 } from '../game/types.ts'
-import { setServerTime } from './clock.ts'
+import { serverNowMs, setServerTime } from './clock.ts'
 import { getSupabase } from './supabase.ts'
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -236,12 +236,21 @@ export async function joinTeam(teammate1: string, teammate2: string, color: stri
 }
 
 export async function submitGuess(teamId: string, book: string, chapter: number, verse: number): Promise<void> {
-  await call('submit_guess', {
+  // Captured before the request, on the server's clock, so upload delay is not part of the speed order.
+  const lockedAt = new Date(serverNowMs()).toISOString()
+  const guess = {
     p_team_id: teamId,
     p_book: book,
     p_chapter: chapter,
     p_verse: verse,
-  })
+  }
+  try {
+    await call('submit_guess', { ...guess, p_locked_at: lockedAt })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : ''
+    if (!message.includes('p_locked_at') && !message.includes('schema cache')) throw err
+    await call('submit_guess', guess)
+  }
 }
 
 export async function fetchHostState(): Promise<HostState> {
