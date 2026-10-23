@@ -788,7 +788,11 @@ export function Host() {
       {state && dialog?.kind === 'verse' && (
         <ConfirmDialog
           title={`Delete round ${dialog.round}?`}
-          body="Rounds with guesses can’t be deleted until scores are reset."
+          body={
+            state.guesses.some((guess) => guess.roundNumber === dialog.round)
+              ? 'This removes the passage and the guesses for this round. Later rounds move up.'
+              : 'Later rounds move up to fill the gap.'
+          }
           confirmLabel="Delete round"
           busy={busy}
           onCancel={() => setDialog(null)}
