@@ -16,6 +16,21 @@ body {
   min-height: 100vh;
 }
 
+@media (hover: none) and (pointer: coarse) {
+  body {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  input, textarea, select {
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+  }
+}
+
 button, input, select, textarea { font: inherit; color: inherit; }
 
 button { cursor: pointer; }
