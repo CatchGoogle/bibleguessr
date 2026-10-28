@@ -12,7 +12,6 @@ import { playCountdown, playGuess, playRoundStart, playTimeUp, unlockSound } fro
 import { bandFor } from '../game/standings.ts'
 import { BAND_COLORS, colorName, formatClock, remainingMs, teamLabel, timerState } from '../game/types.ts'
 import type { Phase, PublicGame, TimerState } from '../game/types.ts'
-import { sitePath } from '../lib/site.ts'
 import { useNow, usePublicGame } from '../lib/useGame.ts'
 
 const STAGE_WIDTH = 3200
@@ -82,9 +81,6 @@ function Lobby({ game }: { game: PublicGame }) {
   return (
     <div className="stage-layout lobby-view">
       <Wordmark />
-      <p className="join-line">
-        Join on your phone at <strong>{window.location.host}{sitePath() === '/' ? '' : sitePath()}</strong>
-      </p>
       {teams.length === 0 ? (
         <p className="quiet">Waiting for the first team…</p>
       ) : (

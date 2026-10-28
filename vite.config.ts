@@ -19,7 +19,8 @@ function pagesFallback() {
 }
 
 export default defineConfig(({ command }) => ({
-  base: command === 'build' ? '/bibleguessr/' : '/',
+  // GitHub Pages serves from /bibleguessr/. Netlify (see netlify.toml) sets VITE_BASE=/ for the site root.
+  base: process.env.VITE_BASE ?? (command === 'build' ? '/bibleguessr/' : '/'),
   plugins: [react(), pagesFallback()],
   test: {
     environment: 'node',

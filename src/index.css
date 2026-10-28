@@ -968,9 +968,6 @@ textarea { resize: vertical; }
 }
 
 .lobby-view .logo { width: 980px; max-width: none; }
-.join-line { margin: 0; font-size: 56px; color: #d9c7aa; }
-.join-line strong { color: #f6edd8; }
-
 .roster {
   list-style: none;
   margin: 0;
