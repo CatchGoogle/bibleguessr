@@ -21,6 +21,7 @@ function game(round: number, text: string, verseRound = 0, updatedAt = '2026-01-
       effects: true,
       standingsRevealed: false,
       upNext: null,
+      sittingOut: [],
       reveal: null,
     },
   }

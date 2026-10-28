@@ -118,6 +118,7 @@ export function parseSnapshot(value: unknown): PublicSnapshot {
     effects: row.effects !== false,
     standingsRevealed: row.standingsRevealed === true,
     upNext: row.upNext == null ? null : num(row.upNext),
+    sittingOut: asArray(row.sittingOut).map(text),
     reveal: parsedReveal,
   }
 }
@@ -163,6 +164,7 @@ function parseHostTeam(value: unknown): TeamRow {
     teammate2: text(row.teammate2),
     color: text(row.color),
     active: row.active !== false,
+    benched: row.benched === true,
     lastSeen: row.lastSeen == null ? null : text(row.lastSeen),
   }
 }
@@ -325,6 +327,8 @@ export const hostApi = {
       p_teammate2: teammate2,
       p_color: color,
     }),
+  setTeamBenched: (teamId: string, benched: boolean) =>
+    hostCall('host_set_team_benched', { p_team_id: teamId, p_benched: benched }),
   deleteTeam: (teamId: string) => hostCall('host_delete_team', { p_team_id: teamId }),
   deleteGuess: (guessId: string) => hostCall('host_delete_guess', { p_guess_id: guessId }),
   resetScores: () => hostCall('host_reset_scores'),

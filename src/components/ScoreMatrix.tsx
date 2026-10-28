@@ -37,7 +37,7 @@ export function ScoreMatrix({
           <tr>
             <th scope="col">Round</th>
             {teams.map((team) => (
-              <th scope="col" key={team.id} className={team.active ? '' : 'gone'}>
+              <th scope="col" key={team.id} className={team.active && !team.benched ? '' : 'gone'}>
                 <i style={{ background: team.color }} />
                 {teamLabel(team.teammate1, team.teammate2)}
               </th>

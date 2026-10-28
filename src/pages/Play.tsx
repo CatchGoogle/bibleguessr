@@ -216,9 +216,10 @@ function GuessScreen({
     setExpired(false)
   }
   if (game.phase === 'guessing' && open) sawOpen.current = true
-  const showForm = game.phase === 'guessing' && !locked && !expired && (open || sawOpen.current)
+  const sittingOut = game.snapshot.sittingOut.includes(team.id) && !locked
+  const showForm = game.phase === 'guessing' && !locked && !sittingOut && !expired && (open || sawOpen.current)
 
-  useAwayReporter(team.id, game.currentRound, game.phase === 'guessing' && !locked && open)
+  useAwayReporter(team.id, game.currentRound, game.phase === 'guessing' && !locked && !sittingOut && open)
 
   const clockClass = remaining <= 10_000 && game.phase === 'guessing' && state !== 'idle' ? 'clock urgent' : 'clock'
   const guessing = game.phase === 'guessing'
@@ -288,7 +289,10 @@ function GuessScreen({
             : 'Guess locked in. Watch the big screen for the reveal.'}
         </p>
       )}
-      {game.phase === 'guessing' && !locked && !showForm && !open && (
+      {game.phase === 'guessing' && sittingOut && (
+        <p className="panel waiting">Your duo is sitting out right now. Hang tight and keep this page open.</p>
+      )}
+      {game.phase === 'guessing' && !locked && !sittingOut && !showForm && !open && (
         <p className="panel timesup">Time’s up. Guesses are closed.</p>
       )}
       {showForm && (

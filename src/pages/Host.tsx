@@ -103,7 +103,7 @@ export function Host() {
 
   const maxRound = state?.verses.at(-1)?.roundNumber ?? 0
   const currentVerse = state?.verses.find((verse) => verse.roundNumber === state.currentRound)
-  const activeTeams = state?.teams.filter((team) => team.active) ?? []
+  const activeTeams = state?.teams.filter((team) => team.active && !team.benched) ?? []
   const lockedIds = new Set(
     state?.guesses.filter((guess) => guess.roundNumber === state.currentRound).map((guess) => guess.teamId) ?? [],
   )
@@ -810,6 +810,11 @@ export function Host() {
             busy={busy}
             onCancel={() => setDialog(null)}
             onDelete={() => setDialog({ kind: 'delete-team', teamId: dialog.teamId })}
+            onToggleBenched={() => {
+              const target = state.teams.find((team) => team.id === dialog.teamId)!
+              setDialog(null)
+              void run(() => hostApi.setTeamBenched(target.id, !target.benched))
+            }}
             onSave={(teammate1, teammate2, color) => {
               const teamId = dialog.teamId
               setDialog(null)
@@ -905,13 +910,15 @@ function TeamCard({
   onEdit: () => void
 }) {
   return (
-    <li className={team.active ? 'team-card' : 'team-card gone'}>
+    <li className={team.active && !team.benched ? 'team-card' : 'team-card gone'}>
       <i style={{ background: team.color }} />
       <div className="team-card-main">
         <strong>{teamLabel(team.teammate1, team.teammate2)}</strong>
         <span className="chips">
           {!team.active ? (
             <em className="chip off">Left</em>
+          ) : team.benched ? (
+            <em className="chip off">Inactive</em>
           ) : (
             <em className={online ? 'chip on' : 'chip off'}>{online ? 'Online' : 'Offline'}</em>
           )}
@@ -1052,12 +1059,14 @@ function TeamEditor({
   busy,
   onSave,
   onDelete,
+  onToggleBenched,
   onCancel,
 }: {
   team: TeamRow
   busy: boolean
   onSave: (teammate1: string, teammate2: string, color: string) => void
   onDelete: () => void
+  onToggleBenched: () => void
   onCancel: () => void
 }) {
   const [teammate1, setTeammate1] = useState(team.teammate1)
@@ -1072,6 +1081,9 @@ function TeamEditor({
         onSave(teammate1, teammate2, color)
       }}
     >
+      {team.benched && (
+        <p>Inactive: scores are kept, but they are hidden on the big screen and nobody waits for them.</p>
+      )}
       <div className="split">
         <input value={teammate1} onChange={(event) => setTeammate1(event.target.value)} maxLength={24} required aria-label="First name" />
         <input value={teammate2} onChange={(event) => setTeammate2(event.target.value)} maxLength={24} required aria-label="Second name" />
@@ -1093,6 +1105,11 @@ function TeamEditor({
         <button className="btn primary" type="submit" disabled={busy}>
           Save team
         </button>
+        {team.active && (
+          <button className="btn" type="button" onClick={onToggleBenched} disabled={busy}>
+            {team.benched ? 'Mark active' : 'Mark inactive'}
+          </button>
+        )}
         <button className="btn danger" type="button" onClick={onDelete}>
           Remove team
         </button>

@@ -51,6 +51,8 @@ export type PublicSnapshot = {
   effects: boolean
   standingsRevealed: boolean
   upNext: number | null
+  // Duos the host marked inactive. The projector never shows them; the player page uses this.
+  sittingOut: string[]
   reveal: null | {
     book: string
     chapter: number
@@ -90,6 +92,8 @@ export type TeamRow = {
   teammate2: string
   color: string
   active: boolean
+  // Inactive duo: keeps scores, hidden on the projector, not waited for.
+  benched: boolean
   lastSeen: string | null
 }
 

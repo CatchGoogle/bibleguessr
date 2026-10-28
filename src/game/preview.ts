@@ -173,6 +173,7 @@ export function previewGame(phase: PreviewPhase): PublicGame {
       effects: true,
       standingsRevealed: phase === 'final',
       upNext: null,
+      sittingOut: [],
       reveal: revealing ? { book: 'John', chapter: 3, verse: 16, results: previewResults, colorResults: previewResults.filter((result) => result.teamId !== 'd') } : null,
     },
   }
