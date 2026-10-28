@@ -148,15 +148,24 @@ function Race({ rows, progress, final, grouped }: { rows: StandingRow[]; progres
   const order = rows.map((row) => row.result.teamId).join('|')
 
   useLayoutEffect(() => {
+    // offsetTop ignores transforms, so it is each row's resting place even while a glide is running.
     const next = new Map<string, number>()
+    const starts = new Map<string, number>()
     for (const [id, el] of itemRefs.current) {
-      const top = el.getBoundingClientRect().top
-      const before = tops.current.get(id)
+      const top = el.offsetTop
       next.set(id, top)
+      const before = tops.current.get(id)
       if (before == null) continue
-      const dy = before - top
-      if (Math.abs(dy) < 1) continue
-      el.animate([{ transform: `translateY(${dy}px)` }, { transform: 'translateY(0)' }], {
+      // Where the row is drawn right now: its old resting place plus any glide still in progress.
+      const matrix = new DOMMatrixReadOnly(getComputedStyle(el).transform)
+      const start = before + matrix.m42 - top
+      if (Math.abs(start) >= 1) starts.set(id, start)
+    }
+    for (const [id, start] of starts) {
+      const el = itemRefs.current.get(id)
+      if (!el) continue
+      el.getAnimations().forEach((animation) => animation.cancel())
+      el.animate([{ transform: `translateY(${start}px)` }, { transform: 'translateY(0)' }], {
         duration: SWAP_MS,
         easing: 'cubic-bezier(0.45, 0, 0.25, 1)',
       })
