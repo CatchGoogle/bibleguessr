@@ -6,7 +6,11 @@ import { startTicker, stopTicker } from '../game/sounds.ts'
 import { colorName, teamLabel } from '../game/types.ts'
 import type { RevealResult } from '../game/types.ts'
 
-const RACE_MS = 2600
+// How long the scores climb, how long the starting order is held first, and how long
+// one team takes to glide past another.
+const RACE_MS = 7500
+const HOLD_MS = 1500
+const SWAP_MS = 1600
 
 export function CountUp({
   from,
@@ -98,20 +102,25 @@ export function Standings({ results, final, grouped = false }: { results: Reveal
   useEffect(() => {
     if (reduce) return
     let frame = 0
-    let ticking = true
-    startTicker()
-    const start = performance.now()
-    const tick = (time: number) => {
-      const next = Math.min(1, (time - start) / RACE_MS)
-      setProgress(next)
-      if (next < 1) frame = requestAnimationFrame(tick)
-      else if (ticking) {
-        ticking = false
-        stopTicker()
+    let ticking = false
+    // Hold on the starting order first, so the climb is seen from the beginning.
+    const begin = window.setTimeout(() => {
+      ticking = true
+      startTicker()
+      const start = performance.now()
+      const tick = (time: number) => {
+        const next = Math.min(1, (time - start) / RACE_MS)
+        setProgress(next)
+        if (next < 1) frame = requestAnimationFrame(tick)
+        else if (ticking) {
+          ticking = false
+          stopTicker()
+        }
       }
-    }
-    frame = requestAnimationFrame(tick)
+      frame = requestAnimationFrame(tick)
+    }, HOLD_MS)
     return () => {
+      window.clearTimeout(begin)
       cancelAnimationFrame(frame)
       if (ticking) {
         ticking = false
@@ -122,7 +131,7 @@ export function Standings({ results, final, grouped = false }: { results: Reveal
 
   useEffect(() => {
     if (!final || progress < 1) return
-    const id = window.setTimeout(() => setPodiumOn(true), reduce ? 0 : 450)
+    const id = window.setTimeout(() => setPodiumOn(true), reduce ? 0 : 1800)
     return () => window.clearTimeout(id)
   }, [final, progress, reduce])
 
@@ -148,8 +157,8 @@ function Race({ rows, progress, final, grouped }: { rows: StandingRow[]; progres
       const dy = before - top
       if (Math.abs(dy) < 1) continue
       el.animate([{ transform: `translateY(${dy}px)` }, { transform: 'translateY(0)' }], {
-        duration: 420,
-        easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
+        duration: SWAP_MS,
+        easing: 'cubic-bezier(0.45, 0, 0.25, 1)',
       })
     }
     tops.current = next
