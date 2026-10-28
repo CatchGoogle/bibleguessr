@@ -158,7 +158,7 @@ function Race({ rows, progress, final, grouped }: { rows: StandingRow[]; progres
   return (
     <div className="standings">
       <p className="answer-kicker">{final ? 'Final standings' : 'Standings'}</p>
-      <ol className={rows.length > 8 ? 'standing-list race dense' : 'standing-list race'}>
+      <ol className={rows.length > 8 ? 'standing-list race dense' : grouped ? 'standing-list race grouped' : 'standing-list race'}>
         {rows.map((row, index) => {
           const liveRank = index + 1
           return (
@@ -191,7 +191,7 @@ function Podium({ rows, grouped }: { rows: StandingRow[]; grouped: boolean }) {
     <div className="standings">
       <p className="answer-kicker">Final standings</p>
       {podium.length > 0 && (
-        <div className="podium">
+        <div className={grouped ? 'podium grouped' : 'podium'}>
           {[1, 0, 2]
             .filter((slot) => podium[slot])
             .map((slot) => {
@@ -209,7 +209,7 @@ function Podium({ rows, grouped }: { rows: StandingRow[]; grouped: boolean }) {
         </div>
       )}
       {rest.length > 0 && (
-        <ol className={rows.length > 8 ? 'standing-list dense' : 'standing-list'}>
+        <ol className={rows.length > 8 ? 'standing-list dense' : grouped ? 'standing-list grouped' : 'standing-list'}>
           {rest.map((row) => (
             <li key={row.result.teamId}>
               <b className="rank">{row.rank}</b>
