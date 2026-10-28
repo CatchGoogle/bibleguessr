@@ -34,11 +34,19 @@ export type MapPin = {
   chapter: number
 }
 
+// Mean position of every locked-in guess, in the map's 0-100 space.
+export type MapAverage = {
+  x: number
+  y: number
+  count: number
+}
+
 export type PublicSnapshot = {
   verseText: string | null
   verseRound: number
   teams: PublicTeam[]
   pins: MapPin[]
+  average: MapAverage | null
   totalRounds: number
   effects: boolean
   standingsRevealed: boolean
@@ -48,6 +56,8 @@ export type PublicSnapshot = {
     chapter: number
     verse: number
     results: RevealResult[]
+    // One row per team color, holding the better duo's guess. Empty before the server sends it.
+    colorResults: RevealResult[]
   }
 }
 
@@ -134,6 +144,11 @@ export type HostState = TimerFields & {
 
 export const TEAM_COLORS = ['#0073ff', '#fff824', '#ff2424'] as const
 export const TEAM_COLOR_NAMES = ['Blue', 'Yellow', 'Red'] as const
+
+export function colorName(color: string): string {
+  const index = TEAM_COLORS.findIndex((swatch) => swatch.toLowerCase() === color.toLowerCase())
+  return index >= 0 ? TEAM_COLOR_NAMES[index] : 'Team'
+}
 
 export function formatClock(ms: number): string {
   const total = Math.max(0, Math.ceil(ms / 1000))

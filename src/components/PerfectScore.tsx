@@ -3,14 +3,14 @@ import type { CSSProperties } from 'react'
 import { CountUp } from './Standings.tsx'
 import { formatPoints, PERFECT_SCORE } from '../game/scoring.ts'
 import { playPerfect } from '../game/sounds.ts'
-import { teamLabel } from '../game/types.ts'
+import { colorName, teamLabel } from '../game/types.ts'
 import type { RevealResult } from '../game/types.ts'
 
 const SPARKS = Array.from({ length: 20 }, (_, index) => index)
 
 export const PERFECT_HOLD_MS = 5600
 
-export function PerfectScore({ teams }: { teams: RevealResult[] }) {
+export function PerfectScore({ teams, grouped = false }: { teams: RevealResult[]; grouped?: boolean }) {
   const reduce = useRef(typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches).current
   const [hit, setHit] = useState(reduce)
   const [gone, setGone] = useState(false)
@@ -48,7 +48,10 @@ export function PerfectScore({ teams }: { teams: RevealResult[] }) {
           {teams.map((team, index) => (
             <li key={team.teamId} style={{ animationDelay: `${0.15 + index * 0.12}s` }}>
               <i style={{ background: team.color }} />
-              <span>{teamLabel(team.teammate1, team.teammate2)}</span>
+              <span>
+                {grouped ? `${colorName(team.color)} · ` : ''}
+                {teamLabel(team.teammate1, team.teammate2)}
+              </span>
               {team.score > PERFECT_SCORE && <em>{formatPoints(team.score)} with speed</em>}
             </li>
           ))}

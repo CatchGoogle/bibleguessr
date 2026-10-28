@@ -10,7 +10,7 @@ import type { PreviewPhase } from '../game/preview.ts'
 import { distanceLabel, formatReference, isPerfectScore, speedLabel } from '../game/scoring.ts'
 import { playCountdown, playGuess, playRoundStart, playTimeUp, unlockSound } from '../game/sounds.ts'
 import { bandFor } from '../game/standings.ts'
-import { BAND_COLORS, formatClock, remainingMs, teamLabel, timerState } from '../game/types.ts'
+import { BAND_COLORS, colorName, formatClock, remainingMs, teamLabel, timerState } from '../game/types.ts'
 import type { Phase, PublicGame, TimerState } from '../game/types.ts'
 import { sitePath } from '../lib/site.ts'
 import { useNow, usePublicGame } from '../lib/useGame.ts'
@@ -139,8 +139,12 @@ function GuessingView({ game, now, roundLabel }: { game: PublicGame; now: number
         {teams.length === 0 && <p className="quiet">Teams join on their phones.</p>}
       </aside>
       <section className="map-band">
-        <p className="map-count">Guesses show up here when the answer is revealed</p>
-        <Timeline pins={[]} answer={null} showAnswer={false} />
+        <p className="map-count">
+          {game.snapshot.average
+            ? `The dot is the average of ${game.snapshot.average.count} ${game.snapshot.average.count === 1 ? 'guess' : 'guesses'}. Real guesses appear at the reveal.`
+            : 'Guesses appear at the reveal. The average shows up after the first lock-in.'}
+        </p>
+        <Timeline pins={[]} average={game.snapshot.average} answer={null} showAnswer={false} />
       </section>
     </div>
   )
@@ -159,7 +163,10 @@ function RevealView({
 }) {
   const total = game.snapshot.totalRounds
   const final = total > 0 && game.currentRound >= total
-  const perfects = reveal.results.filter((result) => isPerfectScore(result.bookScore, result.chapterScore, result.verseScore))
+  // Scores are tallied by team color, with the better duo counting. Older servers send duos only.
+  const grouped = reveal.colorResults.length > 0
+  const rows = grouped ? reveal.colorResults : reveal.results
+  const perfects = rows.filter((result) => isPerfectScore(result.bookScore, result.chapterScore, result.verseScore))
   // The host decides when the final standings appear; other rounds show them on a timer.
   const showStandings = final ? game.snapshot.standingsRevealed && stage >= 2 : stage >= 3
   const showCards = !showStandings && (stage === 2 || (final && stage >= 3))
@@ -167,7 +174,7 @@ function RevealView({
   if (final && showStandings) {
     return (
       <div className="stage-layout finals">
-        <Standings results={reveal.results} final />
+        <Standings results={rows} grouped={grouped} final />
       </div>
     )
   }
@@ -212,16 +219,17 @@ function RevealView({
           <>
             <p className="answer-kicker">Correct answer</p>
             <h2 className="answer-ref small">{formatReference(reveal.book, reveal.chapter, reveal.verse)}</h2>
-            <ul className={reveal.results.length > 8 ? 'result-list cards dense' : 'result-list cards'}>
-              {reveal.results.map((result, index) => {
+            <ul className={rows.length > 8 ? 'result-list cards dense' : 'result-list cards'}>
+              {rows.map((result, index) => {
                 const band = bandFor(result)
                 const speed = speedLabel(result.speedBonus, result.multiplier)
                 return (
                   <li key={result.teamId} className={band === 'perfect' ? 'perfect-row' : undefined} style={{ animationDelay: `${index * 0.14}s` }}>
                     <i style={{ background: result.color }} />
                     <div className="rc-main">
-                      <strong>{teamLabel(result.teammate1, result.teammate2)}</strong>
+                      <strong>{grouped ? colorName(result.color) : teamLabel(result.teammate1, result.teammate2)}</strong>
                       <span className="rc-guess">
+                        {grouped && result.guessBook ? `${teamLabel(result.teammate1, result.teammate2)} · ` : ''}
                         {result.guessBook
                           ? `${result.guessBook} ${result.guessChapter}:${result.guessVerse}`
                           : 'No guess'}
@@ -265,11 +273,11 @@ function RevealView({
             </ul>
           </>
         )}
-        {showStandings && <Standings results={reveal.results} final={final} />}
+        {showStandings && <Standings results={rows} grouped={grouped} final={final} />}
         {final && !showStandings && stage >= 2 && <p className="standings-hold">Final standings coming up…</p>}
       </section>
       {perfects.length > 0 && stage >= 2 && !showStandings && (
-        <PerfectScore key={`${game.currentRound}:${reveal.book}:${reveal.verse}`} teams={perfects} />
+        <PerfectScore key={`${game.currentRound}:${reveal.book}:${reveal.verse}`} teams={perfects} grouped={grouped} />
       )}
     </div>
   )

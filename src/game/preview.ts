@@ -1,4 +1,5 @@
-import type { MapPin, PublicGame, RevealResult } from './types.ts'
+import { bookPosition, chapterPosition } from './books.ts'
+import type { MapAverage, MapPin, PublicGame, RevealResult } from './types.ts'
 import { TEAM_COLORS } from './types.ts'
 
 const previewTeams = [
@@ -126,6 +127,13 @@ function crowdPins(): MapPin[] {
   }))
 }
 
+function averageOf(pins: MapPin[]): MapAverage | null {
+  if (pins.length === 0) return null
+  const x = pins.reduce((sum, pin) => sum + bookPosition(pin.book), 0) / pins.length
+  const y = pins.reduce((sum, pin) => sum + chapterPosition(pin.book, pin.chapter), 0) / pins.length
+  return { x, y, count: pins.length }
+}
+
 export function previewGame(phase: PreviewPhase): PublicGame {
   const revealing = phase === 'reveal' || phase === 'final' || phase === 'finalwait'
   const lobby = phase === 'lobby'
@@ -158,13 +166,14 @@ export function previewGame(phase: PreviewPhase): PublicGame {
         ? null
         : 'For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.',
       teams: crowd ? crowdTeams() : previewTeams,
-      pins: lobby ? [] : crowd ? crowdPins() : pinsFromResults,
+      pins: lobby || !revealing ? [] : pinsFromResults,
+      average: lobby ? null : averageOf(crowd ? crowdPins() : pinsFromResults),
       verseRound: phase === 'final' || phase === 'finalwait' ? 8 : 3,
       totalRounds: 8,
       effects: true,
       standingsRevealed: phase === 'final',
       upNext: null,
-      reveal: revealing ? { book: 'John', chapter: 3, verse: 16, results: previewResults } : null,
+      reveal: revealing ? { book: 'John', chapter: 3, verse: 16, results: previewResults, colorResults: previewResults.filter((result) => result.teamId !== 'd') } : null,
     },
   }
 }

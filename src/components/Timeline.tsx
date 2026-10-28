@@ -1,6 +1,6 @@
 import { BOOKS, bookPosition, chapterPosition, testamentDividerPercent } from '../game/books.ts'
 import { teamLabel } from '../game/types.ts'
-import type { MapPin } from '../game/types.ts'
+import type { MapAverage, MapPin } from '../game/types.ts'
 
 type Answer = {
   book: string
@@ -14,7 +14,10 @@ function axisLabel(name: string): string {
   return name === 'Psalm' ? 'Psalms' : name
 }
 
-// Nudge pins that would land on top of each other so every team color stays visible.
+// Pins on the very same spot fan out by a few pixels so every color stays visible.
+// Pins on different spots are never moved, so an exact guess sits on the answer.
+const FAN_PX = 9
+
 function spread(pins: MapPin[]) {
   const placed: { x: number; y: number }[] = []
   return pins.map((pin) => {
@@ -22,11 +25,11 @@ function spread(pins: MapPin[]) {
     const y = chapterPosition(pin.book, pin.chapter)
     let crowd = 0
     for (const other of placed) {
-      if (Math.abs(other.x - x) < 1.4 && Math.abs(other.y - y) < 8) crowd++
+      if (Math.abs(other.x - x) < 0.01 && Math.abs(other.y - y) < 0.01) crowd++
     }
     placed.push({ x, y })
     const angle = crowd * 2.4
-    const radius = crowd === 0 ? 0 : 26 + Math.floor(crowd / 6) * 16
+    const radius = crowd === 0 ? 0 : FAN_PX + Math.floor((crowd - 1) / 6) * 6
     return { x, y, dx: Math.cos(angle) * radius, dy: Math.sin(angle) * radius }
   })
 }
@@ -35,10 +38,12 @@ export function Timeline({
   pins,
   answer,
   showAnswer,
+  average = null,
 }: {
   pins: MapPin[]
   answer: Answer | null
   showAnswer: boolean
+  average?: MapAverage | null
 }) {
   const spots = spread(pins)
 
@@ -64,6 +69,16 @@ export function Timeline({
             aria-label={teamLabel(pin.teammate1, pin.teammate2)}
           />
         ))}
+        {average && (
+          <div
+            className="avg-dot"
+            style={{ left: `${average.x}%`, top: `${average.y}%` }}
+            title="Average guess"
+            aria-label="Average guess"
+          >
+            <span>Avg</span>
+          </div>
+        )}
         {showAnswer && answer && (
           <div
             className="map-dot answer-dot"

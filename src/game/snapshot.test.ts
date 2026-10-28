@@ -16,6 +16,7 @@ function game(round: number, text: string, verseRound = 0, updatedAt = '2026-01-
       verseRound,
       teams: [],
       pins: [],
+      average: null,
       totalRounds: 8,
       effects: true,
       standingsRevealed: false,

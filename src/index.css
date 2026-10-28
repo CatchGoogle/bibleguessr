@@ -1123,6 +1123,48 @@ textarea { resize: vertical; }
 
 .guess-dot { z-index: 3; }
 
+/* Mean of every guess. Glides to its new spot each time a team locks in. */
+.avg-dot {
+  position: absolute;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 6px dashed #f6edd8;
+  background: rgba(16, 14, 12, 0.35);
+  transform: translate(-50%, -50%);
+  transition: left 0.9s cubic-bezier(0.2, 0.8, 0.2, 1), top 0.9s cubic-bezier(0.2, 0.8, 0.2, 1);
+  z-index: 4;
+  animation: avgIn 0.5s ease-out both;
+}
+
+.avg-dot::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border-radius: 50%;
+  background: #f6edd8;
+}
+
+.avg-dot span {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  transform: translateX(-50%);
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #f6edd8;
+  text-shadow: 0 2px 8px rgba(16, 14, 12, 0.9);
+  white-space: nowrap;
+}
+
+@keyframes avgIn { from { opacity: 0; } to { opacity: 1; } }
+
 .answer-dot {
   width: 74px;
   height: 74px;

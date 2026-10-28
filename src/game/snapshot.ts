@@ -35,6 +35,7 @@ function blankStale(game: PublicGame): PublicGame {
     ...game.snapshot,
     verseText: null,
     pins: [],
+    average: null,
     reveal: null,
     teams: game.snapshot.teams.map((team) => ({ ...team, submitted: false })),
   }

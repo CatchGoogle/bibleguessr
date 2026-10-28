@@ -100,13 +100,20 @@ export function parseSnapshot(value: unknown): PublicSnapshot {
       chapter: num(revealRow.chapter),
       verse: num(revealRow.verse),
       results: asArray(revealRow.results).map(parseRevealResult),
+      colorResults: asArray(revealRow.colorResults).map(parseRevealResult),
     }
   }
+  const averageRow = row.average && typeof row.average === 'object' ? asRecord(row.average) : null
+  const average =
+    averageRow && num(averageRow.count) > 0
+      ? { x: num(averageRow.x), y: num(averageRow.y), count: num(averageRow.count) }
+      : null
   return {
     verseText: row.verseText == null ? null : text(row.verseText),
     verseRound: num(row.verseRound),
     teams: asArray(row.teams).map(parseTeam),
     pins: asArray(row.pins).map(parsePin).filter((pin) => pin.book && pin.chapter > 0),
+    average,
     totalRounds: num(row.totalRounds),
     effects: row.effects !== false,
     standingsRevealed: row.standingsRevealed === true,

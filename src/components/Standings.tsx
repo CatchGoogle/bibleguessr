@@ -3,7 +3,7 @@ import { standings } from '../game/standings.ts'
 import type { StandingRow } from '../game/standings.ts'
 import { formatPoints } from '../game/scoring.ts'
 import { startTicker, stopTicker } from '../game/sounds.ts'
-import { teamLabel } from '../game/types.ts'
+import { colorName, teamLabel } from '../game/types.ts'
 import type { RevealResult } from '../game/types.ts'
 
 const RACE_MS = 2600
@@ -83,7 +83,11 @@ function Change({ change }: { change: number }) {
   return <span className="move same">–</span>
 }
 
-export function Standings({ results, final }: { results: RevealResult[]; final: boolean }) {
+function rowLabel(result: RevealResult, grouped: boolean): string {
+  return grouped ? colorName(result.color) : teamLabel(result.teammate1, result.teammate2)
+}
+
+export function Standings({ results, final, grouped = false }: { results: RevealResult[]; final: boolean; grouped?: boolean }) {
   const rows = useMemo(() => standings(results), [results])
   const reduce = useRef(typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches).current
   const [progress, setProgress] = useState(reduce ? 1 : 0)
@@ -124,12 +128,12 @@ export function Standings({ results, final }: { results: RevealResult[]; final: 
 
   const ordered = useMemo(() => orderByProgress(rows, progress), [rows, progress])
 
-  if (final && podiumOn) return <Podium rows={orderByProgress(rows, 1)} />
+  if (final && podiumOn) return <Podium rows={orderByProgress(rows, 1)} grouped={grouped} />
 
-  return <Race rows={ordered} progress={progress} final={final} />
+  return <Race rows={ordered} progress={progress} final={final} grouped={grouped} />
 }
 
-function Race({ rows, progress, final }: { rows: StandingRow[]; progress: number; final: boolean }) {
+function Race({ rows, progress, final, grouped }: { rows: StandingRow[]; progress: number; final: boolean; grouped: boolean }) {
   const itemRefs = useRef(new Map<string, HTMLLIElement>())
   const tops = useRef(new Map<string, number>())
   const order = rows.map((row) => row.result.teamId).join('|')
@@ -168,7 +172,7 @@ function Race({ rows, progress, final }: { rows: StandingRow[]; progress: number
             >
               <b className="rank">{liveRank}</b>
               <i style={{ background: row.result.color }} />
-              <strong>{teamLabel(row.result.teammate1, row.result.teammate2)}</strong>
+              <strong>{rowLabel(row.result, grouped)}</strong>
               <Change change={previousRank(row) - liveRank} />
               <em>{formatPoints(shownScore(row, progress))}</em>
             </li>
@@ -179,7 +183,7 @@ function Race({ rows, progress, final }: { rows: StandingRow[]; progress: number
   )
 }
 
-function Podium({ rows }: { rows: StandingRow[] }) {
+function Podium({ rows, grouped }: { rows: StandingRow[]; grouped: boolean }) {
   const podium = rows.slice(0, 3)
   const rest = rows.slice(3)
 
@@ -194,7 +198,7 @@ function Podium({ rows }: { rows: StandingRow[] }) {
               const row = podium[slot]
               return (
                 <div key={row.result.teamId} className={`podium-slot place-${row.rank}`} style={{ animationDelay: `${(2 - slot) * 0.12}s` }}>
-                  <strong>{teamLabel(row.result.teammate1, row.result.teammate2)}</strong>
+                  <strong>{rowLabel(row.result, grouped)}</strong>
                   <span className="podium-score">{formatPoints(row.result.totalScore)}</span>
                   <div className="podium-block" style={{ background: row.result.color }}>
                     {row.rank}
@@ -210,7 +214,7 @@ function Podium({ rows }: { rows: StandingRow[] }) {
             <li key={row.result.teamId}>
               <b className="rank">{row.rank}</b>
               <i style={{ background: row.result.color }} />
-              <strong>{teamLabel(row.result.teammate1, row.result.teammate2)}</strong>
+              <strong>{rowLabel(row.result, grouped)}</strong>
               <Change change={row.change} />
               <em>{formatPoints(row.result.totalScore)}</em>
             </li>
