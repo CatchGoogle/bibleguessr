@@ -129,8 +129,11 @@ function GuessingView({ game, now, roundLabel }: { game: PublicGame; now: number
         </h2>
         <ul>
           {teams.map((team) => (
-            <li key={team.id} className={team.submitted ? 'locked' : ''}>
-              <i style={{ background: team.color }} />
+            <li
+              key={team.id}
+              className={team.submitted ? 'locked' : ''}
+              style={{ '--c': team.color } as React.CSSProperties}
+            >
               <span>{teamLabel(team.teammate1, team.teammate2)}</span>
               <em>{team.submitted ? 'Locked in' : 'Thinking…'}</em>
             </li>
