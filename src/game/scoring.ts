@@ -81,17 +81,19 @@ export function scoreGuess(
   }
 }
 
-export function speedMultiplier(submissionOrder: number, teamCount: number): number {
-  if (submissionOrder === teamCount) return 1
-  return 1 + (0.1 * (teamCount - 1)) / submissionOrder
+// Same amount for every team that still had this much clock left at the lock tap.
+// Kept in sync with supabase/migrations/011_early_lock_bonus.sql.
+export const EARLY_LOCK_MS = 15_000
+export const EARLY_LOCK_BONUS = 150
+
+export function earlyLockBonus(remainingMs: number): number {
+  return remainingMs >= EARLY_LOCK_MS ? EARLY_LOCK_BONUS : 0
 }
 
-export function applyMultiplier(
-  baseScore: number,
-  submissionOrder: number,
-  teamCount: number,
-): number {
-  return Math.round(baseScore * speedMultiplier(submissionOrder, teamCount))
+export function speedLabel(speedBonus: number, multiplier: number): string | null {
+  if (speedBonus > 0) return `+${formatPoints(speedBonus)} early`
+  if (multiplier > 1.001) return `×${multiplier.toFixed(2)} speed`
+  return null
 }
 
 export function distanceLabel(

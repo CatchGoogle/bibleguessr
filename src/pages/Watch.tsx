@@ -7,7 +7,7 @@ import { Wordmark } from '../components/Wordmark.tsx'
 import { FittedQuote } from '../components/FittedQuote.tsx'
 import { previewGame } from '../game/preview.ts'
 import type { PreviewPhase } from '../game/preview.ts'
-import { distanceLabel, formatReference, isPerfectScore } from '../game/scoring.ts'
+import { distanceLabel, formatReference, isPerfectScore, speedLabel } from '../game/scoring.ts'
 import { playCountdown, playGuess, playRoundStart, playTimeUp, unlockSound } from '../game/sounds.ts'
 import { bandFor } from '../game/standings.ts'
 import { BAND_COLORS, formatClock, remainingMs, teamLabel, timerState } from '../game/types.ts'
@@ -139,10 +139,8 @@ function GuessingView({ game, now, roundLabel }: { game: PublicGame; now: number
         {teams.length === 0 && <p className="quiet">Teams join on their phones.</p>}
       </aside>
       <section className="map-band">
-        <p className="map-count">
-          {game.snapshot.pins.length} {game.snapshot.pins.length === 1 ? 'guess' : 'guesses'} on the map
-        </p>
-        <Timeline pins={game.snapshot.pins} answer={null} showAnswer={false} />
+        <p className="map-count">Guesses show up here when the answer is revealed</p>
+        <Timeline pins={[]} answer={null} showAnswer={false} />
       </section>
     </div>
   )
@@ -217,6 +215,7 @@ function RevealView({
             <ul className={reveal.results.length > 8 ? 'result-list cards dense' : 'result-list cards'}>
               {reveal.results.map((result, index) => {
                 const band = bandFor(result)
+                const speed = speedLabel(result.speedBonus, result.multiplier)
                 return (
                   <li key={result.teamId} className={band === 'perfect' ? 'perfect-row' : undefined} style={{ animationDelay: `${index * 0.14}s` }}>
                     <i style={{ background: result.color }} />
@@ -258,7 +257,7 @@ function RevealView({
                           '–'
                         )}
                       </em>
-                      {result.guessBook && result.multiplier > 1.001 && <small>×{result.multiplier.toFixed(2)} speed</small>}
+                      {result.guessBook && speed && <small>{speed}</small>}
                     </div>
                   </li>
                 )
@@ -298,10 +297,10 @@ function useRoundIntro(phase: Phase, round: number, effects: boolean): number | 
   return intro
 }
 
-// A brief shake each time a new guess lands on the map.
+// A brief shake each time another team locks in.
 function usePinShake(game: PublicGame, effects: boolean): boolean {
   const [shaking, setShaking] = useState(false)
-  const count = game.snapshot.pins.length
+  const count = game.snapshot.teams.filter((team) => team.submitted).length
   const previous = useRef({ round: game.currentRound, count, phase: game.phase })
 
   useEffect(() => {

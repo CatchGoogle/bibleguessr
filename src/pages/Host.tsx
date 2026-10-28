@@ -8,7 +8,7 @@ import { BOOKS, chapterCount, MAX_VERSE } from '../game/books.ts'
 import { cleanPassage, looksLikeNiv, lookupNiv, parseAddress, parseNivPaste } from '../game/niv.ts'
 import { integritySignals, worstSeverity } from '../game/integrity.ts'
 import type { Severity, Signal } from '../game/integrity.ts'
-import { formatPoints, formatReference } from '../game/scoring.ts'
+import { formatPoints, formatReference, speedLabel } from '../game/scoring.ts'
 import { TEAM_COLORS, TEAM_COLOR_NAMES, formatClock, remainingMs, teamLabel, timerState } from '../game/types.ts'
 import type { HostState, TeamRow, TimerState } from '../game/types.ts'
 import { hostApi } from '../lib/api.ts'
@@ -1026,7 +1026,9 @@ function GuessDetail({
         <dd>{formatPoints(guess.verseScore)}</dd>
         <dt>Speed bonus</dt>
         <dd>
-          {formatPoints(base)} × {guess.multiplier.toFixed(2)} (locked in #{guess.submissionOrder})
+          {speedLabel(guess.speedBonus, guess.multiplier)
+            ? `${formatPoints(base)} ${speedLabel(guess.speedBonus, guess.multiplier)}`
+            : 'None'}
         </dd>
         <dt>Score</dt>
         <dd>

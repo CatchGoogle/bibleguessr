@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { BOOKS } from './books.ts'
-import { applyMultiplier, distanceLabel, isPerfectScore, scoreGuess, speedMultiplier } from './scoring.ts'
+import { distanceLabel, earlyLockBonus, isPerfectScore, scoreGuess, speedLabel } from './scoring.ts'
 
 const john = BOOKS.findIndex((book) => book.name === 'John')
 
@@ -71,16 +71,18 @@ describe('scoreGuess', () => {
   })
 })
 
-describe('speed multiplier', () => {
-  it('matches the previous submission-order formula', () => {
-    expect(speedMultiplier(1, 4)).toBeCloseTo(1.3)
-    expect(speedMultiplier(2, 4)).toBeCloseTo(1.15)
-    expect(speedMultiplier(4, 4)).toBe(1)
-    expect(applyMultiplier(100, 1, 4)).toBe(130)
-    expect(applyMultiplier(100, 2, 4)).toBe(115)
-    expect(applyMultiplier(55, 2, 3)).toBe(61)
-    expect(applyMultiplier(100, 1, 1)).toBe(100)
-    expect(applyMultiplier(5000, 1, 4)).toBe(6500)
+describe('early lock bonus', () => {
+  it('pays 150 once when 15 seconds or more are left', () => {
+    expect(earlyLockBonus(15_000)).toBe(150)
+    expect(earlyLockBonus(60_000)).toBe(150)
+    expect(earlyLockBonus(14_999)).toBe(0)
+    expect(earlyLockBonus(0)).toBe(0)
+  })
+
+  it('labels the flat bonus, and older multiplied scores keep their old label', () => {
+    expect(speedLabel(150, 1)).toBe('+150 early')
+    expect(speedLabel(0, 1.3)).toBe('×1.30 speed')
+    expect(speedLabel(0, 1)).toBeNull()
   })
 })
 

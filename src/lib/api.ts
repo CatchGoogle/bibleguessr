@@ -83,6 +83,7 @@ function parseRevealResult(value: unknown): RevealResult {
     chapterScore: num(row.chapterScore),
     verseScore: num(row.verseScore),
     multiplier: num(row.multiplier),
+    speedBonus: num(row.speedBonus),
     score: num(row.score),
     totalScore: num(row.totalScore),
   }
@@ -184,6 +185,7 @@ function parseGuess(value: unknown): GuessRow {
     score: num(row.score),
     submissionOrder: num(row.submissionOrder),
     multiplier: num(row.multiplier),
+    speedBonus: num(row.speedBonus),
     createdAt: text(row.createdAt),
   }
 }
@@ -235,9 +237,14 @@ export async function joinTeam(teammate1: string, teammate2: string, color: stri
   }
 }
 
-export async function submitGuess(teamId: string, book: string, chapter: number, verse: number): Promise<void> {
+export async function submitGuess(
+  teamId: string,
+  book: string,
+  chapter: number,
+  verse: number,
+  lockedAt = new Date(serverNowMs()).toISOString(),
+): Promise<void> {
   // Captured before the request, on the server's clock, so upload delay is not part of the speed order.
-  const lockedAt = new Date(serverNowMs()).toISOString()
   const guess = {
     p_team_id: teamId,
     p_book: book,

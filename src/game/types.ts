@@ -20,6 +20,7 @@ export type RevealResult = {
   chapterScore: number
   verseScore: number
   multiplier: number
+  speedBonus: number
   score: number
   totalScore: number
 }
@@ -102,6 +103,7 @@ export type GuessRow = {
   score: number
   submissionOrder: number
   multiplier: number
+  speedBonus: number
   createdAt: string
 }
 

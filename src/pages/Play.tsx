@@ -3,7 +3,7 @@ import { ConnectionBadge } from '../components/ConnectionBadge.tsx'
 import { FittedQuote } from '../components/FittedQuote.tsx'
 import { Wordmark } from '../components/Wordmark.tsx'
 import { BOOKS, chapterCount, MAX_VERSE } from '../game/books.ts'
-import { distanceLabel, formatPoints, formatReference } from '../game/scoring.ts'
+import { distanceLabel, formatPoints, formatReference, speedLabel } from '../game/scoring.ts'
 import { TEAM_COLORS, TEAM_COLOR_NAMES, formatClock, guessesOpen, remainingMs, teamLabel, timerState } from '../game/types.ts'
 import type { PublicGame } from '../game/types.ts'
 import { joinTeam, reportAway, submitGuess, teamHeartbeat } from '../lib/api.ts'
@@ -184,7 +184,10 @@ function GuessScreen({
   onError: (message: string | null) => void
 }) {
   const [lockedLocally, setLockedLocally] = useState(false)
+  const [autoLocked, setAutoLocked] = useState(false)
+  const [expired, setExpired] = useState(false)
   const roundRef = useRef(game.currentRound)
+  const sawOpen = useRef(false)
   const open = guessesOpen(game, now)
   const state = timerState(game, now)
   const remaining = remainingMs(game, now)
@@ -205,11 +208,15 @@ function GuessScreen({
     return () => window.clearTimeout(id)
   }, [reveal, game.currentRound])
 
-  useEffect(() => {
-    if (roundRef.current === game.currentRound) return
+  if (roundRef.current !== game.currentRound) {
     roundRef.current = game.currentRound
+    sawOpen.current = false
     setLockedLocally(false)
-  }, [game.currentRound])
+    setAutoLocked(false)
+    setExpired(false)
+  }
+  if (game.phase === 'guessing' && open) sawOpen.current = true
+  const showForm = game.phase === 'guessing' && !locked && !expired && (open || sawOpen.current)
 
   useAwayReporter(team.id, game.currentRound, game.phase === 'guessing' && !locked && open)
 
@@ -265,6 +272,9 @@ function GuessScreen({
                 reveal.verse,
               )}{' '}
               · <strong>{formatPoints(mineResult.score)} points</strong>
+              {speedLabel(mineResult.speedBonus, mineResult.multiplier)
+                ? ` (${speedLabel(mineResult.speedBonus, mineResult.multiplier)})`
+                : ''}
             </p>
           ) : (
             <p>No guess locked in.</p>
@@ -272,14 +282,26 @@ function GuessScreen({
         </div>
       )}
       {game.phase === 'guessing' && locked && (
-        <p className="panel locked">Guess locked in. Watch the big screen for the reveal.</p>
+        <p className="panel locked">
+          {autoLocked
+            ? 'Time ran out, so this guess was locked in. Watch the big screen for the reveal.'
+            : 'Guess locked in. Watch the big screen for the reveal.'}
+        </p>
       )}
-      {game.phase === 'guessing' && !locked && !open && <p className="panel timesup">Time’s up. Guesses are closed.</p>}
-      {game.phase === 'guessing' && !locked && open && (
+      {game.phase === 'guessing' && !locked && !showForm && !open && (
+        <p className="panel timesup">Time’s up. Guesses are closed.</p>
+      )}
+      {showForm && (
         <GuessForm
           key={game.currentRound}
           teamId={team.id}
-          onLocked={() => setLockedLocally(true)}
+          open={open}
+          endsAt={game.guessingEndsAt}
+          onLocked={(automatic) => {
+            setAutoLocked(automatic)
+            setLockedLocally(true)
+          }}
+          onExpired={() => setExpired(true)}
           onError={onError}
         />
       )}
@@ -309,11 +331,17 @@ function useKeyboardLift() {
 
 function GuessForm({
   teamId,
+  open,
+  endsAt,
   onLocked,
+  onExpired,
   onError,
 }: {
   teamId: string
-  onLocked: () => void
+  open: boolean
+  endsAt: string | null
+  onLocked: (automatic: boolean) => void
+  onExpired: () => void
   onError: (message: string | null) => void
 }) {
   const [testament, setTestament] = useState<'all' | 'OT' | 'NT'>('all')
@@ -325,6 +353,7 @@ function GuessForm({
   const [busy, setBusy] = useState(false)
   const chapterRef = useRef<HTMLInputElement>(null)
   const verseRef = useRef<HTMLInputElement>(null)
+  const sent = useRef(false)
   const lift = useKeyboardLift()
 
   const books = useMemo(() => {
@@ -351,22 +380,56 @@ function GuessForm({
     chapterRef.current?.select()
   }
 
+  const draft = useRef({ valid: false, book: '', chapter: 0, verse: 0 })
+  draft.current = { valid, book, chapter: chapterNumber, verse: verseNumber }
+  const handlers = useRef({ onLocked, onExpired, onError })
+  handlers.current = { onLocked, onExpired, onError }
+
+  function send(automatic: boolean, lockedAt?: string) {
+    const current = draft.current
+    if (!current.valid || sent.current) return
+    sent.current = true
+    setBusy(true)
+    handlers.current.onError(null)
+    void submitGuess(teamId, current.book, current.chapter, current.verse, lockedAt)
+      .then(() => handlers.current.onLocked(automatic))
+      .catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : 'Could not submit.'
+        if (message.toLowerCase().includes('already locked')) {
+          handlers.current.onLocked(automatic)
+          return
+        }
+        if (automatic) {
+          handlers.current.onError(message)
+          handlers.current.onExpired()
+          return
+        }
+        sent.current = false
+        setArmed(false)
+        setBusy(false)
+        handlers.current.onError(message)
+      })
+  }
+
   function lockIn() {
-    if (!valid || busy) return
+    if (!valid || busy || sent.current) return
     if (!armed) {
       setArmed(true)
       return
     }
-    setBusy(true)
-    onError(null)
-    void submitGuess(teamId, book, chapterNumber, verseNumber)
-      .then(onLocked)
-      .catch((err: unknown) => {
-        onError(err instanceof Error ? err.message : 'Could not submit.')
-        setArmed(false)
-      })
-      .finally(() => setBusy(false))
+    send(false)
   }
+
+  useEffect(() => {
+    if (open || sent.current) return
+    if (!draft.current.valid) {
+      handlers.current.onExpired()
+      return
+    }
+    // Stamp the buzzer, so a forgotten second tap still counts and does not earn the early bonus.
+    const lockedAt = endsAt ? new Date(new Date(endsAt).getTime() - 1).toISOString() : undefined
+    send(true, lockedAt)
+  }, [open, endsAt, teamId])
 
   return (
     <form
@@ -481,6 +544,7 @@ function GuessForm({
           <p className="field-error span">Chapters only go to {maxChapter}.</p>
         )}
         {armed && valid && <p className="quiet span">Tap again. You can’t change this after it’s locked in.</p>}
+        {valid && <p className="quiet span">If the clock hits zero, this guess locks in on its own.</p>}
         <button className={armed ? 'btn primary span armed' : 'btn primary span'} type="submit" disabled={!valid || busy}>
           {busy ? 'Locking in…' : armed ? 'Lock it in' : reference ? `Lock in ${reference}` : 'Lock in'}
         </button>

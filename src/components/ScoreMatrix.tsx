@@ -1,4 +1,4 @@
-import { formatPoints, formatReference } from '../game/scoring.ts'
+import { formatPoints, formatReference, speedLabel } from '../game/scoring.ts'
 import { teamLabel } from '../game/types.ts'
 import type { GuessRow, HostState } from '../game/types.ts'
 
@@ -100,7 +100,7 @@ export function ScoreMatrix({
 }
 
 export function downloadScoresCsv(state: HostState) {
-  const lines = [['Round', 'Answer', 'Team', 'Guess', 'Book points', 'Chapter points', 'Verse points', 'Multiplier', 'Score']]
+  const lines = [['Round', 'Answer', 'Team', 'Guess', 'Book points', 'Chapter points', 'Verse points', 'Speed', 'Score']]
   for (const guess of state.guesses) {
     const team = state.teams.find((item) => item.id === guess.teamId)
     const verse = state.verses.find((item) => item.roundNumber === guess.roundNumber)
@@ -112,7 +112,7 @@ export function downloadScoresCsv(state: HostState) {
       String(guess.bookScore),
       String(guess.chapterScore),
       String(guess.verseScore),
-      guess.multiplier.toFixed(2),
+      speedLabel(guess.speedBonus, guess.multiplier) ?? '',
       String(guess.score),
     ])
   }
