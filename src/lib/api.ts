@@ -195,6 +195,8 @@ function parseGuess(value: unknown): GuessRow {
     submissionOrder: num(row.submissionOrder),
     multiplier: num(row.multiplier),
     speedBonus: num(row.speedBonus),
+    adjustment: num(row.adjustment),
+    adjustmentNote: row.adjustmentNote == null ? null : text(row.adjustmentNote),
     createdAt: text(row.createdAt),
   }
 }
@@ -330,6 +332,8 @@ export const hostApi = {
   setTeamBenched: (teamId: string, benched: boolean) =>
     hostCall('host_set_team_benched', { p_team_id: teamId, p_benched: benched }),
   deleteTeam: (teamId: string) => hostCall('host_delete_team', { p_team_id: teamId }),
+  adjustGuess: (guessId: string, adjustment: number, note: string) =>
+    hostCall('host_adjust_guess', { p_guess_id: guessId, p_adjustment: adjustment, p_note: note }),
   deleteGuess: (guessId: string) => hostCall('host_delete_guess', { p_guess_id: guessId }),
   resetScores: () => hostCall('host_reset_scores'),
   setSettings: (settings: { autoStart: boolean; revealWhenAllIn: boolean; effects: boolean }) =>

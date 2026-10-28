@@ -843,6 +843,12 @@ export function Host() {
           guessId={dialogGuess.id}
           onClose={() => setDialog(null)}
           onDelete={() => setDialog({ kind: 'delete-guess', guessId: dialogGuess.id })}
+          busy={busy}
+          onAdjust={(adjustment, note) => {
+            const guessId = dialogGuess.id
+            setDialog(null)
+            void run(() => hostApi.adjustGuess(guessId, adjustment, note))
+          }}
         />
       )}
       {state && dialog?.kind === 'delete-guess' && dialogGuess && (
@@ -1002,14 +1008,24 @@ function GuessDetail({
   guessId,
   onClose,
   onDelete,
+  busy,
+  onAdjust,
 }: {
   state: HostState
   guessId: string
   onClose: () => void
   onDelete: () => void
+  busy: boolean
+  onAdjust: (adjustment: number, note: string) => void
 }) {
   const guess = state.guesses.find((item) => item.id === guessId)
+  const [adjustText, setAdjustText] = useState(String(guess?.adjustment ?? 0))
+  const [note, setNote] = useState(guess?.adjustmentNote ?? '')
   if (!guess) return null
+  const parsed = Number.parseInt(adjustText, 10)
+  const adjustment = Number.isFinite(parsed) ? parsed : 0
+  const computed = guess.score - guess.adjustment
+  const preview = Math.max(0, computed + adjustment)
   const team = state.teams.find((item) => item.id === guess.teamId)
   const verse = state.verses.find((item) => item.roundNumber === guess.roundNumber)
   const base = guess.bookScore + guess.chapterScore + guess.verseScore
@@ -1040,8 +1056,56 @@ function GuessDetail({
         <dt>Score</dt>
         <dd>
           <strong>{formatPoints(guess.score)}</strong>
+          {guess.adjustment !== 0 && (
+            <>
+              {' '}
+              ({guess.adjustment > 0 ? '+' : ''}
+              {guess.adjustment} adjusted{guess.adjustmentNote ? `: ${guess.adjustmentNote}` : ''})
+            </>
+          )}
         </dd>
       </dl>
+      <form
+        className="stack"
+        onSubmit={(event) => {
+          event.preventDefault()
+          onAdjust(adjustment, note)
+        }}
+      >
+        <label>
+          Adjust score (negative = penalty)
+          <input
+            type="number"
+            step={50}
+            value={adjustText}
+            onChange={(event) => setAdjustText(event.target.value)}
+            aria-label="Score adjustment"
+          />
+        </label>
+        <div className="button-row">
+          {[-250, -500, -1000].map((amount) => (
+            <button key={amount} className="btn tiny" type="button" onClick={() => setAdjustText(String(amount))}>
+              {amount}
+            </button>
+          ))}
+          <button className="btn tiny" type="button" onClick={() => setAdjustText(String(-computed))}>
+            Zero it
+          </button>
+        </div>
+        <input
+          value={note}
+          onChange={(event) => setNote(event.target.value)}
+          maxLength={120}
+          placeholder="Reason (optional)"
+          aria-label="Adjustment reason"
+        />
+        <p>
+          New score: <strong>{formatPoints(preview)}</strong>
+        </p>
+        <button className="btn primary" type="submit" disabled={busy || adjustment === guess.adjustment && note === (guess.adjustmentNote ?? '')}>
+          Save adjustment
+        </button>
+      </form>
       <div className="button-row">
         <button className="btn danger" type="button" onClick={onDelete}>
           Delete guess

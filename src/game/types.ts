@@ -118,6 +118,9 @@ export type GuessRow = {
   submissionOrder: number
   multiplier: number
   speedBonus: number
+  // Host adjustment added to the computed score (negative = penalty).
+  adjustment: number
+  adjustmentNote: string | null
   createdAt: string
 }
 
