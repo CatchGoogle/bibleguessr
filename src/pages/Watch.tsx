@@ -104,6 +104,11 @@ function Lobby({ game }: { game: PublicGame }) {
   )
 }
 
+// Shrink long duo names so both names fit on one line in the team list.
+function railNameSize(label: string): number {
+  return Math.max(20, Math.min(36, Math.floor(500 / (label.length * 0.54))))
+}
+
 function GuessingView({ game, now, roundLabel }: { game: PublicGame; now: number; roundLabel: string }) {
   const remaining = remainingMs(game, now)
   const state = timerState(game, now)
@@ -134,8 +139,18 @@ function GuessingView({ game, now, roundLabel }: { game: PublicGame; now: number
               className={team.submitted ? 'locked' : ''}
               style={{ '--c': team.color } as React.CSSProperties}
             >
-              <span>{teamLabel(team.teammate1, team.teammate2)}</span>
-              <em>{team.submitted ? 'Locked in' : 'Thinking…'}</em>
+              <span style={{ fontSize: railNameSize(teamLabel(team.teammate1, team.teammate2)) }}>
+                {teamLabel(team.teammate1, team.teammate2)}
+              </span>
+              {team.submitted ? (
+                <em className="state-done" aria-label="Locked in">✓</em>
+              ) : (
+                <em className="state-wait" aria-label="Thinking">
+                  <b>.</b>
+                  <b>.</b>
+                  <b>.</b>
+                </em>
+              )}
             </li>
           ))}
         </ul>

@@ -837,7 +837,7 @@ textarea { resize: vertical; }
   position: relative;
   height: 100%;
   display: grid;
-  grid-template-columns: 520px minmax(0, 1fr) 560px;
+  grid-template-columns: 520px minmax(0, 1fr) 620px;
   grid-template-rows: minmax(0, 1fr) 400px;
   gap: 24px 32px;
   padding: 36px 48px 28px;
@@ -918,6 +918,21 @@ textarea { resize: vertical; }
 }
 
 .teams-rail li > i { display: none; }
+.teams-rail li > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.teams-rail em.state-wait { display: inline-flex; font-size: 44px; line-height: 0.5; letter-spacing: 2px; }
+.teams-rail em.state-wait b { font-weight: 700; animation: dotDance 1.2s ease-in-out infinite; }
+.teams-rail em.state-wait b:nth-child(2) { animation-delay: 0.15s; }
+.teams-rail em.state-wait b:nth-child(3) { animation-delay: 0.3s; }
+.teams-rail em.state-done { color: var(--c, #fffaf0); font-size: 36px; font-weight: 700; }
+
+@keyframes dotDance {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.55; }
+  30% { transform: translateY(-12px); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .teams-rail em.state-wait b { animation: none; }
+}
 
 .teams-rail li.locked {
   background: color-mix(in srgb, var(--c, #fffaf0) 38%, rgba(20, 14, 8, 0.55));
