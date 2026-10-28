@@ -139,11 +139,6 @@ function GuessingView({ game, now, roundLabel }: { game: PublicGame; now: number
         {teams.length === 0 && <p className="quiet">Teams join on their phones.</p>}
       </aside>
       <section className="map-band">
-        <p className="map-count">
-          {game.snapshot.average
-            ? `The dot is the average of ${game.snapshot.average.count} ${game.snapshot.average.count === 1 ? 'guess' : 'guesses'}. Real guesses appear at the reveal.`
-            : 'Guesses appear at the reveal. The average shows up after the first lock-in.'}
-        </p>
         <Timeline pins={[]} average={game.snapshot.average} answer={null} showAnswer={false} />
       </section>
     </div>
