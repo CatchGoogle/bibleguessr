@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { BOOKS } from './books.ts'
 import { distanceLabel, earlyLockBonus, isPerfectScore, scoreGuess, speedLabel } from './scoring.ts'
+import { VERSE_COUNTS } from './verseCounts.ts'
 
 const john = BOOKS.findIndex((book) => book.name === 'John')
 
@@ -20,54 +21,62 @@ describe('scoreGuess', () => {
     expect(scoreGuess('Psalms', 23, 1, 'Psalm', 23, 1).baseScore).toBe(5000)
   })
 
-  it('gives nearby books partial credit and still scores chapter and verse', () => {
+  it('gives a neighboring book credit without calling the chapter exact', () => {
     const neighbor = BOOKS[john - 1].name
     expect(scoreGuess(neighbor, 3, 16, 'John', 3, 16)).toEqual({
       bookScore: 2000,
-      chapterScore: 1500,
+      chapterScore: 1250,
       verseScore: 1000,
-      baseScore: 4500,
+      baseScore: 4250,
     })
   })
 
   it('stops awarding chapter and verse points once the book is 4 away', () => {
     const book = BOOKS[john - 4].name
     expect(scoreGuess(book, 3, 16, 'John', 3, 16)).toEqual({
-      bookScore: 1000,
+      bookScore: 1400,
       chapterScore: 0,
       verseScore: 0,
-      baseScore: 1000,
+      baseScore: 1400,
     })
   })
 
-  it('uses the book distance bands', () => {
-    expect(scoreGuess(BOOKS[john - 3].name, 1, 1, 'John', 9, 9).bookScore).toBe(2000)
-    expect(scoreGuess(BOOKS[john - 5].name, 1, 1, 'John', 9, 9).bookScore).toBe(1000)
-    expect(scoreGuess(BOOKS[john - 10].name, 1, 1, 'John', 9, 9).bookScore).toBe(500)
-    expect(scoreGuess(BOOKS[john - 11].name, 1, 1, 'John', 9, 9).bookScore).toBe(0)
+  it('steps book points down, then uses the testament', () => {
+    expect(scoreGuess(BOOKS[john - 1].name, 1, 1, 'John', 9, 9).bookScore).toBe(2000)
+    expect(scoreGuess(BOOKS[john - 2].name, 1, 1, 'John', 9, 9).bookScore).toBe(1800)
+    expect(scoreGuess(BOOKS[john - 3].name, 1, 1, 'John', 9, 9).bookScore).toBe(1600)
+    expect(scoreGuess(BOOKS[john - 5].name, 1, 1, 'John', 9, 9).bookScore).toBe(1200)
+    expect(scoreGuess(BOOKS[john - 8].name, 1, 1, 'John', 9, 9).bookScore).toBe(600)
+    expect(scoreGuess(BOOKS[john + 9].name, 1, 1, 'John', 9, 9).bookScore).toBe(500)
+    expect(scoreGuess('Genesis', 1, 1, 'Malachi', 1, 1).bookScore).toBe(500)
+    expect(scoreGuess('Genesis', 1, 1, 'Matthew', 1, 1).bookScore).toBe(0)
   })
 
-  it('uses the chapter and verse bands inside a close book', () => {
-    expect(scoreGuess('John', 6, 19, 'John', 3, 16)).toMatchObject({
-      chapterScore: 1000,
-      verseScore: 500,
-    })
-    expect(scoreGuess('John', 8, 21, 'John', 3, 16)).toMatchObject({
-      chapterScore: 500,
-      verseScore: 250,
-    })
-    expect(scoreGuess('John', 9, 26, 'John', 3, 16)).toMatchObject({
-      chapterScore: 250,
-      verseScore: 150,
-    })
-    expect(scoreGuess('John', 14, 40, 'John', 3, 16)).toMatchObject({
-      chapterScore: 0,
-      verseScore: 0,
-    })
+  it('scales chapter and verse points by the length of the passage', () => {
+    expect(scoreGuess('Psalm', 24, 1, 'Psalm', 23, 1).chapterScore).toBe(1250)
+    expect(scoreGuess('Psalm', 33, 1, 'Psalm', 23, 1).chapterScore).toBe(1000)
+    expect(scoreGuess('Psalm', 63, 1, 'Psalm', 23, 1).chapterScore).toBe(500)
+    expect(scoreGuess('Psalm', 98, 1, 'Psalm', 23, 1).chapterScore).toBe(0)
+    expect(scoreGuess('Jonah', 2, 1, 'Jonah', 1, 1).chapterScore).toBe(1000)
+    expect(scoreGuess('Jonah', 3, 1, 'Jonah', 1, 1).chapterScore).toBe(0)
+    expect(scoreGuess('John', 3, 17, 'John', 3, 16).verseScore).toBe(800)
+    expect(scoreGuess('John', 3, 26, 'John', 3, 16).verseScore).toBe(300)
+    expect(scoreGuess('Psalm', 119, 11, 'Psalm', 119, 1).verseScore).toBe(650)
+  })
+
+  it('keeps a chapter score off 1500 when only the position matches', () => {
+    expect(scoreGuess('Proverbs', 16, 1, 'Psalm', 75, 1).chapterScore).toBe(1250)
   })
 
   it('scores an unknown book as zero', () => {
     expect(scoreGuess('Nowhere', 1, 1, 'John', 1, 1).baseScore).toBe(0)
+  })
+
+  it('has a verse count for every chapter', () => {
+    expect(VERSE_COUNTS).toHaveLength(BOOKS.length)
+    BOOKS.forEach((book, index) => expect(VERSE_COUNTS[index]).toHaveLength(book.chapters))
+    const verses = VERSE_COUNTS.reduce((sum, chapters) => sum + chapters.reduce((inner, count) => inner + count, 0), 0)
+    expect(verses).toBe(31102)
   })
 })
 
