@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Navigate, useLocation } from 'react-router-dom'
+import { Analytics } from '@vercel/analytics/react'
 import { App } from './App.tsx'
 import './index.css'
 
@@ -19,5 +20,6 @@ createRoot(document.getElementById('root')!).render(
     <BrowserRouter basename={basename}>
       <StripTrailingSlash />
     </BrowserRouter>
+    {import.meta.env.VITE_VERCEL === '1' && <Analytics />}
   </StrictMode>,
 )
