@@ -7,6 +7,13 @@ type Answer = {
   chapter: number
 }
 
+export type BestGuess = {
+  teamId: string
+  color: string
+  book: string
+  chapter: number
+}
+
 // Landmark books only. Sixty-six names cannot be read from across a room.
 const AXIS_BOOKS = ['Genesis', '1 Kings', 'Psalm', 'Daniel', 'Matthew', 'Revelation']
 
@@ -39,11 +46,14 @@ export function Timeline({
   answer,
   showAnswer,
   average = null,
+  bestGuesses = [],
 }: {
   pins: MapPin[]
   answer: Answer | null
   showAnswer: boolean
   average?: MapAverage | null
+  // One per team color: the guess that counts. A line joins each to the answer.
+  bestGuesses?: BestGuess[]
 }) {
   const spots = spread(pins)
 
@@ -55,6 +65,23 @@ export function Timeline({
           <span className="split-ot">Old Testament</span>
           <span className="split-nt">New Testament</span>
         </div>
+        {showAnswer && answer && bestGuesses.length > 0 && (
+          <svg className="best-lines" aria-hidden="true">
+            {bestGuesses.map((guess, index) => {
+              const x1 = `${bookPosition(guess.book)}%`
+              const y1 = `${chapterPosition(guess.book, guess.chapter)}%`
+              const x2 = `${bookPosition(answer.book)}%`
+              const y2 = `${chapterPosition(answer.book, answer.chapter)}%`
+              const delay = `${0.5 + index * 0.25}s`
+              return (
+                <g key={guess.teamId}>
+                  <line className="best-line shade" x1={x1} y1={y1} x2={x2} y2={y2} pathLength={1} style={{ animationDelay: delay }} />
+                  <line className="best-line" x1={x1} y1={y1} x2={x2} y2={y2} pathLength={1} stroke={guess.color} style={{ animationDelay: delay }} />
+                </g>
+              )
+            })}
+          </svg>
+        )}
         {pins.map((pin, index) => (
           <div
             key={pin.teamId}

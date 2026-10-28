@@ -188,6 +188,11 @@ function RevealView({
         </div>
         <Timeline
           pins={game.snapshot.pins}
+          bestGuesses={rows.flatMap((result) =>
+            result.guessBook && result.guessChapter != null
+              ? [{ teamId: result.teamId, color: result.color, book: result.guessBook, chapter: result.guessChapter }]
+              : [],
+          )}
           answer={stage >= 1 ? { book: reveal.book, chapter: reveal.chapter } : null}
           showAnswer={stage >= 1}
         />

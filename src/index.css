@@ -1123,6 +1123,32 @@ textarea { resize: vertical; }
 
 .guess-dot { z-index: 3; }
 
+/* From each team color's counted guess to the answer. */
+.best-lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.best-line {
+  stroke-width: 7;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: drawLine 0.9s cubic-bezier(0.3, 0.7, 0.2, 1) forwards;
+}
+
+.best-line.shade {
+  stroke: rgba(16, 14, 12, 0.6);
+  stroke-width: 15;
+}
+
+@keyframes drawLine { to { stroke-dashoffset: 0; } }
+
 /* Mean of every guess. Glides to its new spot each time a team locks in. */
 .avg-dot {
   position: absolute;
@@ -1530,6 +1556,7 @@ textarea { resize: vertical; }
 
 @media (prefers-reduced-motion: reduce) {
   .map-dot { animation: none; transform: translate(-50%, -50%); }
+  .best-line { animation: none; stroke-dashoffset: 0; }
   .stage-layout-wrap.shaking { animation: none; }
   .perfect-overlay, .perfect-figure, .perfect-rays, .perfect-spark, .perfect-ring, .perfect-flash { animation: none; }
   .perfect-overlay.hit .perfect-teams li { opacity: 1; animation: none; }
